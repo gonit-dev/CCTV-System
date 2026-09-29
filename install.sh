@@ -286,6 +286,7 @@ echo ""
 echo "🧪 Testing installation..."
 python3 -c "
 import sys
+from importlib.metadata import version
 print('Testing imports...')
 
 try:
@@ -302,13 +303,13 @@ except ImportError as e:
 
 try:
     import flask
-    print('✅ Flask:', flask.__version__)
+    print('✅ Flask:', version('flask'))
 except ImportError as e:
     print('❌ Flask failed:', e)
 
 try:
     import flask_socketio
-    print('✅ Flask-SocketIO:', flask_socketio.__version__)
+    print('✅ Flask-SocketIO:', version('flask-socketio'))
 except ImportError as e:
     print('❌ Flask-SocketIO failed:', e)
 

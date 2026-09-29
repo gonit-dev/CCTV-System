@@ -166,6 +166,7 @@ class MultiSourceCCTV:
         self.jpeg_quality = 60
         self.stream_quality = 60
         self.detection_quality = 40
+        self.stream_generation = 0  # id generator MJPEG aktif (generator lama berhenti otomatis)
         
         # LIVE STREAM TIMING SETTINGS - NEW
         self.preserve_live_timing = True  # Flag untuk mempertahankan timing asli live stream
@@ -659,7 +660,7 @@ class MultiSourceCCTV:
                     # PERUBAHAN 7: Warmup dengan parameter performa
                     dummy_image = np.zeros((self.yolo_input_size, self.yolo_input_size, 3), dtype=np.uint8)
                     use_half = self.yolo_device.startswith('cuda')
-                return self.yolo_model.predict(
+                    return self.yolo_model.predict(
                         dummy_image, 
                         verbose=False, 
                         device=self.yolo_device, 
@@ -1511,6 +1512,10 @@ class MultiSourceCCTV:
                             max_height, max_width = frame_height, frame_width
                             frame_buffer = np.zeros((max_height, max_width, 3), dtype=np.uint8)
                         
+                        # Sumber tanpa FPS asli (webcam/RTSP) ikut slider Target FPS
+                        if not self.live_stream_fps:
+                            expected_frame_interval = 1.0 / self.stream_fps
+                        
                         # Timing preservation logic
                         if self.preserve_live_timing and expected_frame_interval:
                             current_time = time.time()
@@ -2067,26 +2072,29 @@ class MultiSourceCCTV:
                 (width - 80, height - 10), 
                 font, 0.4, white_color, 1)
     
+    def get_effective_fps(self):
+        """FPS stream saat ini. Slider Target FPS berlaku sebagai batas atas;
+        untuk file/live stream tidak pernah melebihi FPS asli sumber."""
+        fps = max(1, self.stream_fps)
+        if self.preserve_live_timing and self.live_stream_fps:
+            fps = min(fps, self.live_stream_fps)
+        return fps
+
     def stream_generator_ultra_low_latency(self):
         """Heavily optimized stream generator for maximum performance"""
         logger.info("Ultra low-latency stream generator started with performance optimizations")
         
         # PERUBAHAN 1: Parameter encoding yang dioptimasi
-        encode_params = [
-            cv2.IMWRITE_JPEG_QUALITY, self.stream_quality,
-            cv2.IMWRITE_JPEG_OPTIMIZE, 1,
-            cv2.IMWRITE_JPEG_PROGRESSIVE, 0  # Non-progressive untuk encoding lebih cepat
-        ]
+        # Daftarkan generator ini; generator lama (koneksi /video_feed sebelumnya) akan berhenti
+        self.stream_generation += 1
+        my_gen = self.stream_generation
         
         # PERUBAHAN 2: Alokasikan buffer frame sekali
         max_width, max_height = 1920, 1080  # Ukuran maksimum yang diperkirakan
         stream_buffer = np.zeros((max_height, max_width, 3), dtype=np.uint8)
         
         # PERUBAHAN 3: Tentukan interval frame sekali di awal
-        if self.preserve_live_timing and self.live_stream_fps:
-            target_interval = 1.0 / self.live_stream_fps
-        else:
-            target_interval = self.stream_interval
+        target_interval = 1.0 / self.get_effective_fps()
         
         # PERUBAHAN 4: Pre-alokasi untuk overlay info
         overlay_font = cv2.FONT_HERSHEY_SIMPLEX
@@ -2106,6 +2114,14 @@ class MultiSourceCCTV:
         while self.is_running:
             try:
                 current_time = time.time()
+                
+                # Hentikan generator lama jika ada koneksi /video_feed yang lebih baru
+                if my_gen != self.stream_generation:
+                    logger.info("Stream generator lama digantikan koneksi baru, berhenti")
+                    break
+                
+                # Baca setting terbaru tiap frame (Target FPS bisa diubah saat berjalan)
+                target_interval = 1.0 / self.get_effective_fps()
                 
                 # PERUBAHAN 7: Skip logic berdasarkan beban CPU
                 if max_skip > 0 and skip_counter < max_skip:
@@ -2193,6 +2209,11 @@ class MultiSourceCCTV:
                 
                 # PERUBAHAN 10: Fast JPEG encoding dengan pre-allocated buffer
                 encode_start = time.time()
+                encode_params = [
+                    cv2.IMWRITE_JPEG_QUALITY, int(self.stream_quality),  # dibaca tiap frame
+                    cv2.IMWRITE_JPEG_OPTIMIZE, 1,
+                    cv2.IMWRITE_JPEG_PROGRESSIVE, 0
+                ]
                 _, buffer = cv2.imencode('.jpg', frame, encode_params)
                 frame_bytes = buffer.tobytes()
                 encode_time = time.time() - encode_start
@@ -2793,6 +2814,10 @@ def update_settings():
         cctv_system.stream_fps = max(10, min(30, int(data['target_fps'])))
         cctv_system.stream_interval = 1.0 / cctv_system.stream_fps
     
+    if 'stream_quality' in data:
+        cctv_system.stream_quality = max(20, min(95, int(data['stream_quality'])))
+        cctv_system.jpeg_quality = cctv_system.stream_quality
+    
     yolo_updated = False
     if 'yolo_confidence' in data:
         yolo_updated = cctv_system.update_yolo_settings(confidence=data['yolo_confidence']) or yolo_updated
@@ -2806,6 +2831,8 @@ def update_settings():
         response_data = {
             'success': True,
             'yolo_updated': yolo_updated,
+            'target_fps': cctv_system.stream_fps,
+            'stream_quality': cctv_system.stream_quality,
             'current_yolo_input_size': cctv_system.yolo_input_size,
             'current_yolo_confidence': cctv_system.yolo_confidence_threshold,
             'message': 'Settings updated successfully'

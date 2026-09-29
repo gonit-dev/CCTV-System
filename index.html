@@ -1527,6 +1527,7 @@
 
         // Performance settings
         let targetFPS = 25;
+        let streamQuality = 60;
         let yoloConfidence = 40;
         let yoloInputSize = 320;
         let trackingSensitivity = 80;
@@ -2421,12 +2422,11 @@
             document.getElementById('fpsValue').textContent = value;
             
             if (isConnected) {
-                updatePerformanceSettings();
-                const videoFeed = document.getElementById('videoFeed');
-                if (videoFeed.src) {
-                    const timestamp = Date.now();
-                    videoFeed.src = `/video_feed?t=${timestamp}&fps=${targetFPS}`;
-                }
+                fetch('/update_settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ target_fps: targetFPS })
+                });
             }
         }
 
@@ -2490,6 +2490,19 @@
                 'auto': { fps: 25, confidence: 40, inputSize: 320 }
             };
             
+            // JPEG quality per mode (sebelumnya tidak pernah dikirim ke server)
+            const jpegQuality = { high: 85, balanced: 60, performance: 40, auto: 60 };
+            streamQuality = jpegQuality[mode] || 60;
+            document.getElementById('currentQuality').textContent = streamQuality + '%';
+            document.getElementById('headerQuality').textContent = streamQuality;
+            if (isConnected) {
+                fetch('/update_settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ stream_quality: streamQuality })
+                });
+            }
+            
             if (mode !== 'auto' && qualitySettings[mode]) {
                 const settings = qualitySettings[mode];
                 document.getElementById('fpsSlider').value = settings.fps;
@@ -2506,6 +2519,7 @@
             if (isConnected) {
                 const settings = {
                     target_fps: targetFPS,
+                    stream_quality: streamQuality,
                     yolo_confidence: yoloConfidence / 100,
                     yolo_input_size: yoloInputSize,
                     tracking_sensitivity: trackingSensitivity,
