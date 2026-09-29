@@ -2898,11 +2898,11 @@
             isConnected = false;
             isLiveStream = false;
             isFileWithTiming = false;
-            trackingEnabled = false; // Reset tracking
-            showDetectionOverlay = true; // Reset to default
+            // Tracking, AI Detection, Show Detection Boxes dll. sengaja TIDAK di-reset
             updateConnectionStatus(false);
-            updateDetectionOverlayStatus(); // Reset overlay status
-            updateTrackingStatus(); // Reset tracking status
+            updateDetectionOverlayStatus();
+            updateTrackingStatus();
+            updateYOLOStatus();
             showLiveStreamUI(false);
             showFileTimingUI(false);
             hideObsInfo(); // Hide OBS information

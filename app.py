@@ -2897,10 +2897,8 @@ def disconnect():
         cctv_system.media_profile = None
         cctv_system.auth_method_used = ""
         
-        # Reset system state
-        cctv_system.motion_tracking = False
-        cctv_system.detection_enabled = False
-        cctv_system.show_detection_overlay = True  # Reset to default
+        # Reset hanya state runtime sumber. Pengaturan user (AI Detection, Show Detection Boxes,
+        # Tracking, confidence, input size, FPS, quality) SENGAJA dipertahankan.
         cctv_system.person_count = 0
         cctv_system.last_person_position = None
         
