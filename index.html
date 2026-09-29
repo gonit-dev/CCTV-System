@@ -1,0 +1,3008 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CCTV · AI Detection System</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+        :root {
+            --bg:            #f4f6f9;
+            --surface:       #ffffff;
+            --surface-2:     #f1f3f7;
+            --surface-3:     #e8ebf0;
+            --border:        #e2e6ec;
+            --border-strong: #c8cdd8;
+
+            --text:          #111827;
+            --text-2:        #4b5563;
+            --text-muted:    #9ca3af;
+
+            --accent:        #2563eb;
+            --accent-hover:  #1d4ed8;
+            --accent-bg:     #eff6ff;
+            --accent-border: #bfdbfe;
+
+            --green:         #059669;
+            --green-bg:      #ecfdf5;
+            --green-border:  #a7f3d0;
+            --green-text:    #065f46;
+
+            --red:           #dc2626;
+            --red-bg:        #fef2f2;
+            --red-border:    #fecaca;
+            --red-text:      #991b1b;
+
+            --blue:          #2563eb;
+            --blue-bg:       #eff6ff;
+            --blue-border:   #bfdbfe;
+            --blue-text:     #1e40af;
+
+            --yellow:        #d97706;
+            --yellow-bg:     #fffbeb;
+            --yellow-border: #fde68a;
+
+            --radius-sm:     4px;
+            --radius:        8px;
+            --radius-lg:     12px;
+            --shadow-sm:     0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+            --shadow:        0 4px 12px rgba(0,0,0,0.08);
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            font-size: 13px;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .container {
+            max-width: 1440px;
+            margin: 0 auto;
+            padding: 16px 20px;
+        }
+
+        /* ── HEADER ── */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 14px;
+            padding: 14px 18px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .header-left h1 {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text);
+            letter-spacing: -0.01em;
+        }
+
+        .header-left .subtitle {
+            color: var(--text-muted);
+            font-size: 11px;
+            margin-top: 2px;
+        }
+
+        .header-right {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .performance-indicator {
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 6px 12px;
+            font-size: 11px;
+            color: var(--text-2);
+        }
+
+        .performance-indicator span {
+            color: var(--accent);
+            font-weight: 600;
+        }
+
+        .yolo-status-header {
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 6px 12px;
+            font-size: 11px;
+            color: var(--text-2);
+        }
+
+        .live-stream-info {
+            background: var(--red-bg);
+            border: 1px solid var(--red-border);
+            border-radius: var(--radius-sm);
+            padding: 6px 12px;
+            font-size: 11px;
+            color: var(--red-text);
+            display: none;
+        }
+
+        /* ── MAIN GRID ── */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 360px;
+            gap: 14px;
+            height: calc(100vh - 110px);
+            min-height: 600px;
+        }
+
+        /* ── VIDEO SECTION ── */
+        .video-section {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .video-container {
+            background: #111;
+            border-radius: var(--radius);
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid var(--border);
+        }
+
+        .video-container.live-stream::before {
+            content: "● LIVE";
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: var(--red);
+            color: #fff;
+            padding: 3px 8px;
+            border-radius: var(--radius-sm);
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            z-index: 5;
+            animation: livePulse 2s infinite;
+        }
+
+        .video-container.file-timing::before {
+            content: "⏱ ORIG";
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: var(--blue);
+            color: #fff;
+            padding: 3px 8px;
+            border-radius: var(--radius-sm);
+            font-size: 10px;
+            font-weight: 700;
+            z-index: 5;
+        }
+
+        @keyframes livePulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+
+        #videoFeed {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center;
+            border-radius: var(--radius);
+        }
+
+        .no-video {
+            color: var(--text-muted);
+            font-size: 12px;
+            text-align: center;
+            position: absolute;
+            z-index: 1;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .video-options {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            z-index: 10;
+            display: flex;
+            gap: 4px;
+        }
+
+        .video-option-btn {
+            background: rgba(255,255,255,0.9);
+            border: 1px solid var(--border);
+            color: var(--text-2);
+            padding: 5px 8px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-size: 11px;
+            font-family: inherit;
+            transition: all 0.15s ease;
+            backdrop-filter: blur(4px);
+        }
+
+        .video-option-btn:hover {
+            background: var(--surface);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        .video-option-btn.active {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #fff;
+        }
+
+        /* ── CONTROLS PANEL ── */
+        .controls-panel {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            overflow-y: auto;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .controls-panel::-webkit-scrollbar { width: 4px; }
+        .controls-panel::-webkit-scrollbar-track { background: var(--bg); }
+        .controls-panel::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 2px; }
+
+        /* ── CONTROL SECTION ── */
+        .control-section {
+            background: var(--surface-2);
+            border-radius: var(--radius);
+            padding: 12px;
+            border: 1px solid var(--border);
+            transition: border-color 0.15s ease;
+        }
+
+        .control-section:hover {
+            border-color: var(--border-strong);
+        }
+
+        .control-section h3 {
+            margin-bottom: 12px;
+            color: var(--accent);
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* PTZ specific */
+        #ptzControlSection {
+            border-color: var(--accent-border);
+            background: var(--accent-bg);
+        }
+
+        #ptzControlSection h3 { color: var(--accent); }
+
+        #ptzControlSection .tracking-toggle {
+            background: var(--surface);
+            border: 1px solid var(--accent-border);
+        }
+
+        #ptzControlSection .status-grid {
+            background: var(--surface);
+            border: 1px solid var(--accent-border);
+            border-radius: var(--radius);
+            padding: 10px;
+        }
+
+        /* ── SOURCE TYPE INDICATOR ── */
+        .source-type-indicator {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            color: var(--text-2);
+            padding: 5px 10px;
+            border-radius: var(--radius-sm);
+            font-size: 10px;
+            font-weight: 600;
+            margin-bottom: 10px;
+            text-align: center;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            transition: all 0.2s ease;
+        }
+
+        .source-type-indicator.rtsp-active   { border-color: var(--green-border);  color: var(--green-text); background: var(--green-bg); }
+        .source-type-indicator.webcam-active { border-color: var(--blue-border);   color: var(--blue-text);  background: var(--blue-bg); }
+        .source-type-indicator.stream-active { border-color: var(--red-border);    color: var(--red-text);   background: var(--red-bg); }
+        .source-type-indicator.file-active   { border-color: var(--yellow-border); color: var(--yellow);     background: var(--yellow-bg); }
+
+        /* ── SOURCE TYPE SELECTOR ── */
+        .source-type-selector {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 6px;
+            margin-bottom: 10px;
+        }
+
+        .source-type-btn {
+            padding: 8px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: var(--surface);
+            color: var(--text-2);
+            cursor: pointer;
+            text-align: center;
+            font-size: 11px;
+            font-family: inherit;
+            font-weight: 500;
+            transition: all 0.15s ease;
+        }
+
+        .source-type-btn:hover {
+            border-color: var(--accent-border);
+            color: var(--accent);
+            background: var(--accent-bg);
+        }
+
+        .source-type-btn.active {
+            border-color: var(--accent);
+            background: var(--accent);
+            color: #fff;
+            font-weight: 600;
+        }
+
+        .source-config { display: none; }
+        .source-config.active { display: block; }
+
+        /* ── FORM ELEMENTS ── */
+        .form-group { margin-bottom: 10px; }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-2);
+            letter-spacing: 0.03em;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: var(--surface);
+            color: var(--text);
+            font-size: 12px;
+            font-family: inherit;
+            transition: border-color 0.15s, box-shadow 0.15s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+        }
+
+        .form-group select {
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%239ca3af'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            padding-right: 28px;
+            appearance: none;
+        }
+
+        /* ── BUTTONS ── */
+        .btn {
+            padding: 9px 16px;
+            border: 1px solid transparent;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            font-family: inherit;
+            width: 100%;
+            margin-top: 8px;
+            letter-spacing: 0.02em;
+            transition: all 0.15s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #fff;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: var(--accent-hover);
+            border-color: var(--accent-hover);
+        }
+
+        .btn-danger {
+            background: transparent;
+            border-color: var(--red-border);
+            color: var(--red);
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            background: var(--red-bg);
+            border-color: var(--red);
+        }
+
+        .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        /* ── WEBCAM LIST ── */
+        .webcam-list {
+            max-height: 110px;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: var(--surface);
+        }
+
+        .webcam-item {
+            padding: 7px 10px;
+            cursor: pointer;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-2);
+            font-size: 11px;
+            transition: all 0.15s ease;
+        }
+
+        .webcam-item:hover { background: var(--surface-2); color: var(--text); }
+        .webcam-item.selected { background: var(--accent-bg); color: var(--accent); border-color: var(--accent-border); }
+        .webcam-item:last-child { border-bottom: none; }
+
+        /* ── STREAM TEMPLATES ── */
+        .stream-templates { margin-bottom: 10px; }
+
+        .template-btn {
+            padding: 4px 9px;
+            margin: 2px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: var(--surface);
+            color: var(--text-2);
+            cursor: pointer;
+            font-size: 10px;
+            font-family: inherit;
+            font-weight: 500;
+            transition: all 0.15s ease;
+        }
+
+        .template-btn:hover { border-color: var(--accent-border); color: var(--accent); background: var(--accent-bg); }
+
+        .template-btn.rtsp-template {
+            border-color: var(--green-border);
+            color: var(--green-text);
+            background: var(--green-bg);
+        }
+        .template-btn.rtsp-template:hover { background: #d1fae5; }
+
+        .template-btn.live-template {
+            border-color: var(--red-border);
+            color: var(--red-text);
+            background: var(--red-bg);
+        }
+        .template-btn.live-template:hover { background: #fee2e2; }
+
+        /* ── LIVE / FILE SETTINGS PANELS ── */
+        .live-stream-settings {
+            background: var(--red-bg);
+            border: 1px solid var(--red-border);
+            padding: 10px;
+            border-radius: var(--radius-sm);
+            margin-top: 8px;
+        }
+        .live-stream-settings h4 {
+            color: var(--red-text);
+            margin-bottom: 8px;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+
+        .file-timing-settings {
+            background: var(--blue-bg);
+            border: 1px solid var(--blue-border);
+            padding: 10px;
+            border-radius: var(--radius-sm);
+            margin-top: 8px;
+        }
+        .file-timing-settings h4 {
+            color: var(--blue-text);
+            margin-bottom: 8px;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+
+        /* ── SOURCE INFO / TIPS ── */
+        .source-info {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 8px;
+            margin-top: 10px;
+            font-size: 10px;
+            color: var(--text-2);
+            line-height: 1.7;
+        }
+
+        .tips {
+            font-size: 10px;
+            color: var(--text-muted);
+            margin-top: 6px;
+            line-height: 1.7;
+        }
+
+        /* ── CONNECTION STATUS ── */
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 6px;
+        }
+
+        .status-connected    { background: var(--green); }
+        .status-disconnected { background: var(--red); }
+
+        /* ── PTZ CONTROLS ── */
+        .ptz-controls {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .ptz-btn {
+            padding: 12px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text);
+            cursor: pointer;
+            text-align: center;
+            font-size: 16px;
+            transition: all 0.15s ease;
+        }
+
+        .ptz-btn:hover:not(.disabled) {
+            border-color: var(--accent);
+            background: var(--accent-bg);
+        }
+
+        .ptz-btn.disabled { opacity: 0.3; cursor: not-allowed; }
+
+        /* ── TOGGLES ── */
+        .tracking-toggle,
+        .yolo-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--surface);
+            padding: 10px 12px;
+            border-radius: var(--radius-sm);
+            margin-top: 8px;
+            border: 1px solid var(--border);
+            font-size: 12px;
+            color: var(--text-2);
+        }
+
+        .yolo-toggle {
+            background: var(--accent-bg);
+            border-color: var(--accent-border);
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 44px;
+            height: 22px;
+            background: var(--border-strong);
+            border-radius: 11px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            flex-shrink: 0;
+        }
+
+        .toggle-switch.active { background: var(--green); }
+        .yolo-toggle .toggle-switch.active { background: var(--accent); }
+
+        .toggle-slider {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 18px;
+            height: 18px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.2s ease;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+
+        .toggle-switch.active .toggle-slider { transform: translateX(22px); }
+
+        /* ── STATUS GRID ── */
+        .status-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 6px;
+            margin-top: 12px;
+        }
+
+        .status-item {
+            background: var(--surface);
+            padding: 8px;
+            border-radius: var(--radius-sm);
+            font-size: 11px;
+            text-align: center;
+            border: 1px solid var(--border);
+        }
+
+        .status-item > div:first-child {
+            color: var(--text-muted);
+            font-size: 9px;
+            font-weight: 600;
+            letter-spacing: 0.07em;
+            text-transform: uppercase;
+            margin-bottom: 3px;
+        }
+
+        .status-item > div:last-child {
+            color: var(--text);
+            font-weight: 600;
+        }
+
+        .status-item.full-width { grid-column: 1 / -1; }
+
+        .status-item.live-status {
+            background: var(--red-bg) !important;
+            border: 1px solid var(--red-border) !important;
+            display: none;
+        }
+        .status-item.live-status > div { color: var(--red-text) !important; }
+
+        .status-item.file-status {
+            background: var(--blue-bg) !important;
+            border: 1px solid var(--blue-border) !important;
+            display: none;
+        }
+        .status-item.file-status > div { color: var(--blue-text) !important; }
+
+        /* ── MESSAGES ── */
+        .message {
+            padding: 8px 10px;
+            border-radius: var(--radius-sm);
+            margin-top: 8px;
+            font-size: 11px;
+        }
+
+        .error-message   { background: var(--red-bg);   border: 1px solid var(--red-border);   color: var(--red-text); }
+        .success-message { background: var(--green-bg); border: 1px solid var(--green-border); color: var(--green-text); }
+
+        /* ── SLIDER ── */
+        .slider-group { margin-bottom: 8px; }
+
+        .slider-group label {
+            font-size: 10px;
+            font-weight: 600;
+            color: var(--text-2);
+            display: block;
+            margin-bottom: 5px;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .slider-group label span { color: var(--accent); font-weight: 700; }
+
+        .slider-group input[type="range"] {
+            width: 100%;
+            height: 4px;
+            border-radius: 2px;
+            background: var(--surface-3);
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        .slider-group input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+            border: 2px solid #fff;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+        }
+
+        .yolo-controls {
+            background: var(--accent-bg);
+            border: 1px solid var(--accent-border);
+            padding: 10px;
+            border-radius: var(--radius-sm);
+            margin-top: 8px;
+        }
+
+        .yolo-controls .slider-group input[type="range"]::-webkit-slider-thumb {
+            background: var(--blue);
+        }
+
+        /* ── LIVE / FILE INDICATORS ── */
+        .live-indicator {
+            background: var(--red);
+            color: white;
+            padding: 2px 7px;
+            border-radius: var(--radius-sm);
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: 0.1em;
+            margin-left: 8px;
+            animation: livePulse 2s infinite;
+            display: none;
+        }
+
+        .file-indicator {
+            background: var(--yellow);
+            color: white;
+            padding: 2px 7px;
+            border-radius: var(--radius-sm);
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            margin-left: 8px;
+            display: none;
+        }
+
+        /* ── DETECTION HINT ── */
+        .detection-hint {
+            font-size: 10px;
+            margin-top: 4px;
+            padding: 6px 8px;
+            border-radius: var(--radius-sm);
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            color: var(--text-2);
+        }
+
+        .detection-hint.live {
+            background: var(--red-bg);
+            border-color: var(--red-border);
+            color: var(--red-text);
+        }
+
+        /* ── RTSP PARSED INFO ── */
+        .rtsp-parsed-info {
+            background: var(--green-bg) !important;
+            border: 1px solid var(--green-border) !important;
+            color: var(--green-text) !important;
+            padding: 7px 8px !important;
+            border-radius: var(--radius-sm) !important;
+            margin-bottom: 10px !important;
+            font-size: 10px !important;
+            line-height: 1.6 !important;
+        }
+
+        /* ── RTSP ERROR ── */
+        .rtsp-error-message {
+            background: var(--red-bg) !important;
+            border: 1px solid var(--red-border) !important;
+            color: var(--red) !important;
+            padding: 7px 8px !important;
+            border-radius: var(--radius-sm) !important;
+            margin-top: 6px !important;
+            font-size: 11px !important;
+            font-weight: 700 !important;
+            animation: errorPulse 2s ease-in-out infinite !important;
+        }
+
+        @keyframes errorPulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.55; }
+        }
+
+        /* ── CODE BLOCK ── */
+        .code-block {
+            font-family: 'JetBrains Mono', 'Courier New', monospace;
+            background: var(--surface-2);
+            border: 1px solid var(--border);
+            padding: 6px 8px;
+            border-radius: var(--radius-sm);
+            font-size: 10px;
+            margin-top: 4px;
+            word-break: break-all;
+            color: var(--accent);
+        }
+
+        .copy-btn {
+            background: var(--accent);
+            color: #fff;
+            border: none;
+            border-radius: var(--radius-sm);
+            padding: 2px 8px;
+            font-size: 10px;
+            font-family: inherit;
+            font-weight: 600;
+            cursor: pointer;
+            margin-left: 5px;
+        }
+
+        .copy-btn:hover { background: var(--accent-hover); }
+
+        /* ── OBS PANEL ── */
+        .obs-panel {
+            background: var(--green-bg);
+            border: 1px solid var(--green-border);
+            padding: 12px;
+            border-radius: var(--radius);
+            margin-top: 10px;
+            display: none;
+        }
+
+        .obs-panel h4 {
+            color: var(--green-text);
+            margin-bottom: 10px;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .obs-panel p {
+            font-size: 11px;
+            color: var(--text-2);
+            margin-bottom: 6px;
+        }
+
+        .obs-panel ol, .obs-panel ul {
+            padding-left: 14px;
+            font-size: 10px;
+            color: var(--text-2);
+            line-height: 1.8;
+        }
+
+        /* ── FULLSCREEN ── */
+        .video-container.fullscreen {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            z-index: 1000;
+            border-radius: 0;
+            border: none;
+        }
+
+        .video-container.fullscreen #videoFeed { border-radius: 0; }
+
+        #trackingSensitivitySection { margin-top: 8px; }
+
+        input[type="checkbox"] {
+            accent-color: var(--accent);
+            width: 13px;
+            height: 13px;
+            margin-right: 5px;
+        }
+
+        #onvifStatusSection { border-color: var(--green-border); }
+    </style>
+</head>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-left">
+                <h1>CCTV · AI Detection System</h1>
+                <p class="subtitle">RTSP / Webcam / Live Streams / File • Toggleable Overlay • Universal .pt Model</p>
+            </div>
+            <div class="header-right">
+                <div class="performance-indicator">
+                    FPS: <span id="headerFps">--</span> &nbsp;|&nbsp; Quality: <span id="headerQuality">--</span>% &nbsp;|&nbsp; Load: <span id="headerLoad">Low</span> &nbsp;|&nbsp; Source: <span id="headerSource">None</span>
+                    <span id="liveIndicator" class="live-indicator">LIVE</span>
+                    <span id="fileIndicator" class="file-indicator">ORIG</span>
+                </div>
+                <div class="yolo-status-header" id="yoloHeaderStatus">
+                    YOLO: <span id="headerYoloModel">Checking...</span> &nbsp;|&nbsp; Device: <span id="headerYoloDevice">--</span>
+                </div>
+                <div id="liveStreamInfo" class="live-stream-info">
+                    ● LIVE &nbsp;|&nbsp; Src FPS: <span id="originalFps">--</span> &nbsp;|&nbsp; Timing: <span id="timingMode">Preserved</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-grid">
+            <!-- Video Section -->
+            <div class="video-section">
+                <div class="video-container" id="videoContainer">
+                    <div class="video-options">
+                        <button class="video-option-btn active" onclick="setVideoMode('cover')" title="Full Frame">📏</button>
+                        <button class="video-option-btn" onclick="setVideoMode('contain')" title="Fit Container">📐</button>
+                        <button class="video-option-btn" onclick="toggleFullscreen()" title="Fullscreen">⛶</button>
+                    </div>
+                    <img id="videoFeed" style="display: none;" alt="Video Feed">
+                    <div id="noVideo" class="no-video">
+                        📹 Select a video source to start AI streaming with toggleable detection overlay
+                    </div>
+                </div>
+            </div>
+
+            <!-- Controls Panel -->
+            <div class="controls-panel">
+                <!-- Source Selection -->
+                <div class="control-section">
+                    <h3>📡 Video Source Selection</h3>
+                    
+                    <div class="source-type-selector">
+                        <div class="source-type-btn active" onclick="selectSourceType('rtsp', this)">
+                            📹 RTSP/IP
+                        </div>
+                        <div class="source-type-btn" onclick="selectSourceType('webcam', this)">
+                            🎥 Webcam
+                        </div>
+                        <div class="source-type-btn" onclick="selectSourceType('stream', this)">
+                            📺 Live Stream
+                        </div>
+                        <div class="source-type-btn" onclick="selectSourceType('file', this)">
+                            📁 File/URL
+                        </div>
+                    </div>
+
+                    <div id="currentSourceIndicator" class="source-type-indicator rtsp-active">
+                        Current: RTSP/IP Camera with Enhanced URL Support
+                    </div>
+
+                    <!-- RTSP/IP Camera Configuration -->
+                    <div id="rtspConfig" class="source-config active">
+                        <div class="stream-templates">
+                            <div style="margin-bottom: 8px; font-size: 12px; color: #ccc;">RTSP URL Templates:</div>
+                            <button class="template-btn rtsp-template" onclick="setRtspTemplate('basic')">🔓 Basic RTSP</button>
+                            <button class="template-btn rtsp-template" onclick="setRtspTemplate('auth_full')">🔐 User:Pass</button>
+                            <button class="template-btn rtsp-template" onclick="setRtspTemplate('auth_user')">👤 User Only</button>
+                            <button class="template-btn rtsp-template" onclick="setRtspTemplate('hikvision')">📹 Hikvision</button>
+                            <button class="template-btn rtsp-template" onclick="setRtspTemplate('dahua')">📹 Dahua</button>
+                            <button class="template-btn rtsp-template" onclick="setRtspTemplate('axis')">📹 Axis</button>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>RTSP URL (supports all standard formats):</label>
+                            <input type="text" id="rtspUrl" placeholder="rtsp://192.168.1.100:554/stream1">
+                            <div id="rtspErrorMessage" class="rtsp-error-message" style="display: none;">
+                                ❌ Wrong RTSP - Connection failed
+                            </div>
+                        </div>
+                        
+                        <div id="rtspCredentialsSection">
+                            <div class="form-group">
+                                <label>Camera IP (for PTZ/ONVIF):</label>
+                                <input type="text" id="cameraIp" placeholder="192.168.1.100 (optional for PTZ)">
+                            </div>
+                            <div class="form-group">
+                                <label>ONVIF Port:</label>
+                                <input type="number" id="cameraPort" value="80" placeholder="80">
+                            </div>
+                            <div class="form-group">
+                                <label>Username (optional if not in URL):</label>
+                                <input type="text" id="username" placeholder="admin">
+                            </div>
+                            <div class="form-group">
+                                <label>Password (optional if not in URL):</label>
+                                <input type="password" id="password" placeholder="password">
+                            </div>
+                        </div>
+                        
+                        <div class="source-info">
+                            📹 <strong>Supported RTSP Formats</strong><br>
+                            • <code>rtsp://192.168.1.4:554/live/ch00_0</code><br>
+                            • <code>rtsp://admin:@192.168.1.4/stream</code><br>
+                            • <code>rtsp://admin:password@192.168.1.4:554/</code><br>
+                            • <code>rtsp://user:password@192.168.1.4/path/stream</code><br>
+                            • <code>http://192.168.1.4/any/path</code><br>
+                            • <code>https://admin:password@192.168.1.4:8080/</code><br>
+                            • 🔍 <strong>Smart IP Detection</strong> - Extracts IP from ANY URL format<br>
+                            • 🔄 <strong>Real-time IP extraction</strong> - Camera IP auto-fills as you type<br>
+                            • ✅ <strong>IP Validation</strong> - Only valid IP addresses (0-255 range)
+                        </div>
+                        
+                        <div class="tips">
+                            💡 <strong>Universal IP Detection:</strong> System extracts IP from any URL format<br>
+                            🔓 Works with: rtsp://, http://, https://, or even plain IP URLs<br>
+                            👤 Handles: No auth, username only, full credentials, custom ports<br>
+                            ⚡ <strong>Real-time validation:</strong> Only valid IP addresses are accepted<br>
+                            🔄 <strong>Universal support:</strong> Camera IP field updates from ANY URL format<br>
+                            🎯 <strong>Examples:</strong> 192.168.1.4, 10.0.0.100, 172.16.0.50 all work perfectly
+                        </div>
+                    </div>
+
+                    <!-- Webcam Configuration -->
+                    <div id="webcamConfig" class="source-config">
+                        <div class="form-group">
+                            <label>Available Webcams:</label>
+                            <div id="webcamList" class="webcam-list">
+                                <div class="webcam-item" onclick="selectWebcam(-1)">
+                                    🔍 Scanning for webcams...
+                                </div>
+                            </div>
+                        </div>
+                        <button class="btn btn-primary" onclick="refreshWebcams()" style="margin-top: 8px;">
+                            🔄 Refresh Webcam List
+                        </button>
+                        <div class="source-info">
+                            📹 <strong>Webcam Support:</strong><br>
+                            • USB cameras (built-in/external)<br>
+                            • DirectShow compatible devices<br>
+                            • Auto-detection with device info
+                        </div>
+                    </div>
+
+                    <!-- Live Stream Configuration -->
+                    <div id="streamConfig" class="source-config">
+                        <div class="stream-templates">
+                            <div style="margin-bottom: 8px; font-size: 12px; color: #ccc;">Live Stream Templates:</div>
+                            <button class="template-btn live-template" onclick="setStreamTemplate('youtube_live')">🔴 YouTube Live</button>
+                            <button class="template-btn live-template" onclick="setStreamTemplate('twitch_live')">🔴 Twitch Live</button>
+                            <button class="template-btn" onclick="setStreamTemplate('http')">🌐 HTTP Stream</button>
+                            <button class="template-btn live-template" onclick="setStreamTemplate('hls_live')">🔴 HLS Live</button>
+                            <button class="template-btn live-template" onclick="setStreamTemplate('facebook_live')">🔴 Facebook Live</button>
+                            <button class="template-btn live-template" onclick="setStreamTemplate('instagram_live')">🔴 Instagram Live</button>
+                        </div>
+                        <div class="form-group">
+                            <label>Stream URL:</label>
+                            <input type="text" id="streamUrl" placeholder="https://example.com/stream.m3u8">
+                        </div>
+                        <div class="form-group">
+                            <label>Stream Type:</label>
+                            <select id="streamType">
+                                <option value="auto">Auto Detect</option>
+                                <option value="hls">HLS (.m3u8)</option>
+                                <option value="dash">DASH (.mpd)</option>
+                                <option value="http">HTTP Stream</option>
+                                <option value="youtube">YouTube Live</option>
+                                <option value="twitch">Twitch Stream</option>
+                                <option value="facebook">Facebook Live</option>
+                                <option value="instagram">Instagram Live</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Live Stream Settings -->
+                        <div class="live-stream-settings">
+                            <h4>🔴 Live Stream Settings</h4>
+                            
+                            <div class="form-group">
+                                <label>
+                                    <input type="checkbox" id="preserveTiming" checked> 
+                                    Preserve Original Timing (Recommended for live streams)
+                                </label>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Buffer Size:</label>
+                                <select id="liveBufferSize">
+                                    <option value="minimal">Minimal (Best for live)</option>
+                                    <option value="small">Small</option>
+                                    <option value="medium">Medium</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Connection Timeout:</label>
+                                <select id="liveTimeout">
+                                    <option value="15">15 seconds (Recommended)</option>
+                                    <option value="10">10 seconds</option>
+                                    <option value="20">20 seconds</option>
+                                    <option value="30">30 seconds</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="source-info">
+                            🔴 <strong>Live Stream Support:</strong><br>
+                            • YouTube Live streams with original timing<br>
+                            • Twitch streams with real-time playback<br>
+                            • HLS (.m3u8) live streams<br>
+                            • Facebook & Instagram Live<br>
+                            • HTTP/HTTPS live streams<br>
+                            • DASH adaptive live streams<br>
+                            • ⚡ <strong>Auto-detects live streams and preserves original speed</strong>
+                        </div>
+                    </div>
+
+                    <!-- File/URL Configuration - Enhanced with Timing Control -->
+                    <div id="fileConfig" class="source-config">
+                        <div class="form-group">
+                            <label>File Path or URL:</label>
+                            <input type="text" id="fileUrl" placeholder="/path/to/video.mp4 or http://example.com/video.mp4">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Loop Video:</label>
+                            <select id="loopVideo">
+                                <option value="false">No Loop</option>
+                                <option value="true">Loop Continuously</option>
+                            </select>
+                        </div>
+
+                        <!-- Timing Control for Files -->
+                        <div class="file-timing-settings">
+                            <h4>⏱️ Playback Timing Settings</h4>
+                            
+                            <div class="form-group">
+                                <label>
+                                    <input type="checkbox" id="preserveFileTiming" checked> 
+                                    Preserve Original Speed (Recommended - maintains natural playback speed)
+                                </label>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Auto-detect Stream Type:</label>
+                                <select id="autoDetectType">
+                                    <option value="auto" selected>Auto Detect (Live Stream vs File)</option>
+                                    <option value="force_file">Force File Mode</option>
+                                    <option value="force_live">Force Live Stream Mode</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Buffer Size:</label>
+                                <select id="fileBufferSize">
+                                    <option value="small">Small (Live-like URLs)</option>
+                                    <option value="medium" selected>Medium (Regular files)</option>
+                                    <option value="large">Large (Local files)</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="source-info">
+                            📁 <strong>File/URL Support with Proper Timing:</strong><br>
+                            • Local video files (MP4, AVI, MOV, etc.) with original speed<br>
+                            • Network file URLs with proper timing preservation<br>
+                            • Live stream URLs auto-detected and handled properly<br>
+                            • YouTube video files vs YouTube Live auto-detection<br>
+                            • HLS files (.m3u8) vs HLS live streams<br>
+                            • ⚡ <strong>Auto-detects file vs live stream for proper playback speed</strong><br>
+                            • 🎯 <strong>Preserves original timing for natural playback</strong>
+                        </div>
+                    </div>
+
+                    <button class="btn btn-primary" id="connectBtn" onclick="connectSource()">
+                        🚀 Connect to Source
+                    </button>
+                    <button class="btn btn-danger" id="disconnectBtn" onclick="forceDisconnect()" style="display: none;">
+                        Force Disconnect
+                    </button>
+                    <div id="connectionMessage"></div>
+                </div>
+
+                <!-- OBS Streaming Panel -->
+                <div id="obsPanel" class="obs-panel">
+                    <h4>📺 OBS Studio Integration</h4>
+                    <div class="form-group">
+                        <label>CCTV Stream URL for OBS:</label>
+                        <div id="obsMainUrl" class="code-block"></div>
+                        <button class="btn btn-primary" style="margin-top: 8px;" onclick="copyObsMainUrl()">
+                            📋 Copy URL for OBS
+                        </button>
+                    </div>
+                    
+                    <div class="obs-instructions">
+                        <p><strong>How to add this stream to OBS Studio:</strong></p>
+                        <ol style="padding-left: 20px; margin-top: 5px;">
+                            <li>Open OBS Studio</li>
+                            <li>Click + in Sources panel → Media Source</li>
+                            <li>Create new source → give it a name</li>
+                            <li>Paste URL into "Input" field</li>
+                            <li>Check "Network Buffering" option</li>
+                            <li>Uncheck "Local File" option</li>
+                            <li>Click OK to add the source</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <!-- Performance Controls -->
+                <div class="control-section">
+                    <h3>⚡ Performance Settings</h3>
+                    
+                    <div class="slider-group">
+                        <label>Target FPS: <span id="fpsValue">25</span></label>
+                        <input type="range" id="fpsSlider" min="10" max="30" value="25" 
+                               oninput="updateFPS(this.value)">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Quality Mode:</label>
+                        <select id="qualityMode" onchange="updateQualityMode(this.value)">
+                            <option value="auto">Auto (Adaptive)</option>
+                            <option value="high">High Quality</option>
+                            <option value="balanced" selected>Balanced</option>
+                            <option value="performance">Performance</option>
+                        </select>
+                    </div>
+                    
+                    <div class="status-grid">
+                        <div class="status-item">
+                            <div>FPS</div>
+                            <div id="currentFps">--</div>
+                        </div>
+                        <div class="status-item">
+                            <div>Quality</div>
+                            <div id="currentQuality">--</div>
+                        </div>
+                        <div class="status-item">
+                            <div>Latency</div>
+                            <div id="currentLatency">--ms</div>
+                        </div>
+                        <div class="status-item">
+                            <div>Source</div>
+                            <div id="currentSource">None</div>
+                        </div>
+                        <!-- Live Stream Status -->
+                        <div class="status-item live-status" id="liveStatus">
+                            <div>🔴 Live</div>
+                            <div id="liveStreamStatus">Active</div>
+                        </div>
+                        <div class="status-item live-status" id="originalFpsStatus">
+                            <div>Src FPS</div>
+                            <div id="sourceFps">--</div>
+                        </div>
+                        <!-- File Timing Status -->
+                        <div class="status-item file-status" id="fileTimingStatus">
+                            <div>⏱️ File</div>
+                            <div id="fileTimingMode">Original</div>
+                        </div>
+                        <div class="status-item file-status" id="fileFpsStatus">
+                            <div>Src FPS</div>
+                            <div id="fileOriginalFps">--</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AI Controls -->
+                <div class="control-section">
+                    <h3>🤖 AI Detection</h3>
+                    
+                    <div class="yolo-toggle">
+                        <span>🤖 AI Detection:</span>
+                        <div class="toggle-switch" id="yoloToggle" onclick="toggleYOLO()">
+                            <div class="toggle-slider"></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Detection Overlay Toggle -->
+                    <div class="yolo-toggle" style="margin-top: 10px;">
+                        <span>🔲 Show Detection Boxes:</span>
+                        <div class="toggle-switch active" id="overlayToggle" onclick="toggleDetectionOverlay()">
+                            <div class="toggle-slider"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="yolo-controls">
+                        <div class="slider-group">
+                            <label>Confidence: <span id="confidenceValue">40%</span></label>
+                            <input type="range" id="confidenceSlider" min="10" max="90" value="40" 
+                                   oninput="updateYoloConfidence(this.value)">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Input Size:</label>
+                            <select id="inputSizeSelect" onchange="updateYoloInputSize(this.value)">
+                                <option value="320" selected>320x320 (Fastest)</option>
+                                <option value="416">416x416 (Balanced)</option>
+                                <option value="640">640x640 (Accurate)</option>
+                            </select>
+                        </div>
+                        
+                        <!-- Model Support Info -->
+                        <div class="source-info" style="margin-top: 12px;">
+                            🤖 <strong>Universal Model Support:</strong><br>
+                            • Official YOLO models (yolo11n.pt, yolov8n.pt, yolov5n.pt, etc.)<br>
+                            • Custom trained models (my_model.pt, best.pt, etc.)<br>
+                            • Auto-detection with smart priority system<br>
+                            • Place any .pt file in ./models/ or current directory<br>
+                            • ⚡ <strong>Automatically selects best available model</strong>
+                        </div>
+                    </div>
+                    
+                    <div class="status-grid">
+                        <div class="status-item">
+                            <div>Model</div>
+                            <div id="yoloModel">--</div>
+                        </div>
+                        <div class="status-item">
+                            <div>Device</div>
+                            <div id="yoloDevice">--</div>
+                        </div>
+                        <div class="status-item">
+                            <div>Size</div>
+                            <div id="yoloInputSize">320</div>
+                        </div>
+                        <div class="status-item">
+                            <div>People</div>
+                            <div id="personCount">0</div>
+                        </div>
+                        <div class="status-item">
+                            <div>🔲 Overlay</div>
+                            <div id="overlayStatus">ON</div>
+                        </div>
+                        <div class="status-item">
+                            <div>Detection</div>
+                            <div id="detectionStatus">Ready</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- System Status -->
+                <div class="control-section">
+                    <h3>📊 System Status</h3>
+                    
+                    <div class="connection-status" id="connectionStatus">
+                        <span class="status-indicator status-disconnected"></span>
+                        <span id="connectionText">Disconnected</span>
+                    </div>
+                    
+                    <div class="status-grid">
+                        <div class="status-item">
+                            <div>📡 Stream</div>
+                            <div id="streamingStatus">❌</div>
+                        </div>
+                        <div class="status-item">
+                            <div>🤖 AI</div>
+                            <div id="aiStatus">❌</div>
+                        </div>
+                        <!-- Source Type Status - Always visible -->
+                        <div class="status-item full-width" id="sourceTypeContainer">
+                            <div>📹 Source: <span id="sourceTypeStatus">None</span></div>
+                        </div>
+                        <!-- OBS Streaming Info -->
+                        <div id="obsInfoContainer" class="status-item full-width" style="display: none;">
+                            <div>📺 OBS Stream URL: <button id="copyObsUrlBtn" class="copy-btn" onclick="copyObsUrl()">Copy</button></div>
+                            <div id="obsStreamUrl" class="code-block"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PTZ Controls - Only for RTSP sources -->
+                <div class="control-section" id="ptzControlSection" style="display: none;">
+                    <h3>🕹️ PTZ Control (RTSP/ONVIF Only)</h3>
+                    
+                    <!-- Auto Tracking Toggle - Only for RTSP with PTZ -->
+                    <div class="tracking-toggle">
+                        <span>🎯 Auto Tracking:</span>
+                        <div class="toggle-switch" id="trackingToggle" onclick="toggleTracking()">
+                            <div class="toggle-slider"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="slider-group">
+                        <label>Tracking Sensitivity: <span id="trackingSensitivityValue">80</span>px</label>
+                        <input type="range" id="trackingSensitivitySlider" min="20" max="200" value="80" 
+                               oninput="updateTrackingSensitivity(this.value)">
+                    </div>
+                    
+                    <!-- PTZ Status Grid -->
+                    <div class="status-grid" style="margin-bottom: 16px;">
+                        <div class="status-item">
+                            <div>🕹️ PTZ</div>
+                            <div id="ptzStatus">❌</div>
+                        </div>
+                        <div class="status-item">
+                            <div>🎯 Track</div>
+                            <div id="trackingStatus">OFF</div>
+                        </div>
+                        <!-- ONVIF Status - Only for RTSP sources -->
+                        <div class="status-item full-width" id="onvifStatusContainer">
+                            <div>🌐 ONVIF: <span id="onvifStatus">Not connected</span></div>
+                        </div>
+                    </div>
+                    
+                    <div class="ptz-controls">
+                        <div></div>
+                        <div class="ptz-btn disabled" onclick="movePTZ(0, 0.5, 0)">⬆️</div>
+                        <div></div>
+                        <div class="ptz-btn disabled" onclick="movePTZ(-0.5, 0, 0)">⬅️</div>
+                        <div class="ptz-btn disabled" onclick="movePTZ(0, 0, 0)">🏠</div>
+                        <div class="ptz-btn disabled" onclick="movePTZ(0.5, 0, 0)">➡️</div>
+                        <div></div>
+                        <div class="ptz-btn disabled" onclick="movePTZ(0, -0.5, 0)">⬇️</div>
+                        <div></div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px;">
+                        <div class="ptz-btn disabled" onclick="movePTZ(0, 0, 0.3)">🔍+</div>
+                        <div class="ptz-btn disabled" onclick="movePTZ(0, 0, -0.3)">🔍-</div>
+                    </div>
+                    
+                    <div class="slider-group" style="margin-top: 16px;">
+                        <label>PTZ Speed: <span id="ptzSpeedValue">1.0</span>x</label>
+                        <input type="range" id="ptzSpeedSlider" min="0.1" max="2.0" step="0.1" value="1.0" 
+                               oninput="updatePTZSpeed(this.value)">
+                    </div>
+                    
+                    <div class="source-info" style="margin-top: 12px;">
+                        🕹️ <strong>PTZ Control Features:</strong><br>
+                        • Pan, Tilt, Zoom, and Home position control<br>
+                        • Auto person tracking with YOLO/Motion detection<br>
+                        • Adjustable tracking sensitivity<br>
+                        • Variable PTZ movement speed<br>
+                        • Requires RTSP camera with ONVIF support<br>
+                        • Auto-discovered during RTSP connection
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /*
+        ===== TAB-SPECIFIC FEATURES IMPLEMENTATION =====
+        
+        🎥 RTSP/IP TAB:
+        - RTSP URL templates (Hikvision, Dahua, Axis, etc.)
+        - Enhanced URL parsing with credential extraction
+        - Camera IP auto-detection for ONVIF
+        - RTSP error notifications
+        - PTZ Controls (only visible for RTSP)
+        - Auto Tracking (only for PTZ-enabled RTSP cameras)
+        - ONVIF status display (only for RTSP)
+        - PTZ movement controls and speed adjustment
+        
+        📹 WEBCAM TAB:
+        - Auto webcam detection and listing
+        - Device information display
+        - Refresh webcam list functionality
+        - No PTZ, ONVIF, or Auto Tracking features
+        
+        📺 LIVE STREAM TAB:
+        - Stream URL templates (YouTube, Twitch, HLS, etc.)
+        - Live stream timing preservation settings
+        - Buffer size optimization for live streams
+        - Connection timeout settings
+        - Live stream indicators and status
+        - No PTZ or Auto Tracking features
+        
+        📁 FILE/URL TAB:
+        - File path/URL input
+        - Auto-detection of file vs live stream URLs
+        - Original timing preservation controls
+        - File looping options
+        - Buffer size settings for files
+        - File timing indicators
+        - No PTZ or Auto Tracking features
+        
+        🌐 UNIVERSAL FEATURES (All Tabs):
+        - AI Detection controls (YOLO/Motion)
+        - Detection overlay toggle (show/hide boxes)
+        - Performance settings (FPS, Quality)
+        - OBS streaming integration
+        - Video display controls (fullscreen, fit modes)
+        - System status monitoring
+        */
+        
+        // Enhanced multi-source CCTV system with fixed file timing preservation
+        let isConnected = false;
+        let trackingEnabled = false;
+        let yoloEnabled = false;
+        let showDetectionOverlay = true;  // NEW: Detection overlay state
+        let ptzAvailable = false;
+        let statusInterval = null;
+        let currentVideoMode = 'cover';
+        let isFullscreen = false;
+        let currentSourceType = 'rtsp';
+        let selectedWebcamIndex = -1;
+        let availableWebcams = [];
+        let obsStreamUrl = ''; // Store the OBS stream URL
+
+        // Performance settings
+        let targetFPS = 25;
+        let yoloConfidence = 40;
+        let yoloInputSize = 320;
+        let trackingSensitivity = 80;
+        let ptzSpeed = 1.0;
+
+        // Enhanced timing settings
+        let isLiveStream = false;
+        let preserveTiming = true;
+        let originalFps = null;
+        let isFileWithTiming = false;
+
+        // OBS integration functions
+        function showObsInfo() {
+            const obsInfoContainer = document.getElementById('obsInfoContainer');
+            const obsStreamUrlElement = document.getElementById('obsStreamUrl');
+            const obsPanel = document.getElementById('obsPanel');
+            const obsMainUrl = document.getElementById('obsMainUrl');
+            
+            // Generate the OBS stream URL based on current server
+            const serverOrigin = window.location.origin;
+            obsStreamUrl = `${serverOrigin}/video_feed`;
+            
+            // Display the URL in the status section
+            if (obsStreamUrlElement) {
+                obsStreamUrlElement.textContent = obsStreamUrl;
+                obsInfoContainer.style.display = 'block';
+            }
+            
+            // Display the URL in the main OBS panel
+            if (obsMainUrl) {
+                obsMainUrl.textContent = obsStreamUrl;
+                obsPanel.style.display = 'block';
+            }
+            
+            showMessage('✅ OBS Stream URL ready - click Copy to use in OBS Studio', 'success');
+        }
+        
+        function hideObsInfo() {
+            const obsInfoContainer = document.getElementById('obsInfoContainer');
+            const obsPanel = document.getElementById('obsPanel');
+            
+            if (obsInfoContainer) {
+                obsInfoContainer.style.display = 'none';
+            }
+            
+            if (obsPanel) {
+                obsPanel.style.display = 'none';
+            }
+        }
+        
+        function copyObsUrl() {
+            navigator.clipboard.writeText(obsStreamUrl)
+                .then(() => {
+                    showMessage('OBS Stream URL copied to clipboard!', 'success');
+                })
+                .catch(err => {
+                    console.error('Could not copy text: ', err);
+                    showMessage('Failed to copy URL', 'error');
+                });
+        }
+        
+        function copyObsMainUrl() {
+            navigator.clipboard.writeText(obsStreamUrl)
+                .then(() => {
+                    showMessage('OBS Stream URL copied to clipboard!', 'success');
+                })
+                .catch(err => {
+                    console.error('Could not copy text: ', err);
+                    showMessage('Failed to copy URL', 'error');
+                });
+        }
+
+        // RTSP error message management
+        function showRtspError(message) {
+            const errorElement = document.getElementById('rtspErrorMessage');
+            if (errorElement) {
+                errorElement.textContent = `❌ ${message}`;
+                errorElement.style.display = 'block';
+                
+                // Auto-hide after 10 seconds
+                setTimeout(() => {
+                    hideRtspError();
+                }, 10000);
+            }
+        }
+
+        function hideRtspError() {
+            const errorElement = document.getElementById('rtspErrorMessage');
+            if (errorElement) {
+                errorElement.style.display = 'none';
+            }
+        }
+
+        // RTSP template management
+        function setRtspTemplate(type) {
+            const rtspUrl = document.getElementById('rtspUrl');
+            const cameraIp = document.getElementById('cameraIp');
+            const username = document.getElementById('username');
+            const password = document.getElementById('password');
+            
+            // Hide error message when using template
+            hideRtspError();
+            
+            const templates = {
+                'basic': {
+                    url: 'rtsp://192.168.1.100:554/stream1',
+                    ip: '192.168.1.100',
+                    user: '',
+                    pass: ''
+                },
+                'auth_full': {
+                    url: 'rtsp://admin:admin@192.168.1.100:554/stream1',
+                    ip: '192.168.1.100',
+                    user: '',
+                    pass: ''
+                },
+                'auth_user': {
+                    url: 'rtsp://admin:@192.168.1.100:554/stream1',
+                    ip: '192.168.1.100',
+                    user: '',
+                    pass: ''
+                },
+                'hikvision': {
+                    url: 'rtsp://admin:admin@192.168.1.100:554/Streaming/Channels/101',
+                    ip: '192.168.1.100',
+                    user: '',
+                    pass: ''
+                },
+                'dahua': {
+                    url: 'rtsp://admin:admin@192.168.1.100:554/cam/realmonitor?channel=1&subtype=0',
+                    ip: '192.168.1.100',
+                    user: '',
+                    pass: ''
+                },
+                'axis': {
+                    url: 'rtsp://admin:admin@192.168.1.100:554/axis-media/media.amp',
+                    ip: '192.168.1.100',
+                    user: '',
+                    pass: ''
+                }
+            };
+            
+            if (templates[type]) {
+                const template = templates[type];
+                rtspUrl.value = template.url;
+                cameraIp.value = template.ip;
+                username.value = template.user;
+                password.value = template.pass;
+                
+                // Auto-parse the URL to show extracted info
+                parseRtspUrl();
+            }
+        }
+
+        // Enhanced RTSP URL parsing with robust IP address extraction
+        function parseRtspUrl() {
+            const rtspUrlInput = document.getElementById('rtspUrl');
+            const cameraIpInput = document.getElementById('cameraIp');
+            const usernameInput = document.getElementById('username');
+            const passwordInput = document.getElementById('password');
+            
+            const url = rtspUrlInput.value.trim();
+            
+            // Hide error message when user types new URL
+            hideRtspError();
+            
+            // If URL is empty, clear the Camera IP field
+            if (!url) {
+                cameraIpInput.value = '';
+                return;
+            }
+            
+            // Extract IP address from any RTSP URL format
+            const extractedIP = extractIPFromRtspUrl(url);
+            
+            if (extractedIP) {
+                cameraIpInput.value = extractedIP;
+                console.log(`🔍 IP Detected: ${extractedIP} from URL: ${url}`);
+            } else {
+                // If no valid IP found, clear the field
+                cameraIpInput.value = '';
+                console.log(`❌ No valid IP detected in URL: ${url}`);
+            }
+            
+            // Continue with credential extraction only if it's a valid RTSP URL
+            if (!url.startsWith('rtsp://')) {
+                return;
+            }
+            
+            try {
+                // Parse RTSP URL dengan regex untuk menangani semua format
+                const rtspRegex = /^rtsp:\/\/(?:([^:@]+)(?::([^@]*))?@)?([^:\/]+)(?::(\d+))?(.*)$/;
+                const match = url.match(rtspRegex);
+                
+                if (match) {
+                    const [, user, pass, host, port, path] = match;
+                    
+                    // Show extracted credentials info
+                    const credentialsSection = document.getElementById('rtspCredentialsSection');
+                    const existingInfo = credentialsSection.querySelector('.rtsp-parsed-info');
+                    if (existingInfo) {
+                        existingInfo.remove();
+                    }
+                    
+                    if (user || pass) {
+                        const info = document.createElement('div');
+                        info.className = 'rtsp-parsed-info';
+                        info.style.cssText = `
+                            background: rgba(76, 175, 80, 0.1);
+                            border: 1px solid #4CAF50;
+                            color: #4CAF50;
+                            padding: 8px;
+                            border-radius: 4px;
+                            margin-bottom: 12px;
+                            font-size: 11px;
+                        `;
+                        
+                        let infoText = '✅ <strong>Credentials detected in URL:</strong><br>';
+                        if (user) infoText += `• Username: ${user}<br>`;
+                        if (pass) infoText += `• Password: ${pass ? '***' : '(empty)'}<br>`;
+                        infoText += '• Will use URL credentials (separate fields optional)';
+                        
+                        info.innerHTML = infoText;
+                        credentialsSection.insertBefore(info, credentialsSection.firstChild);
+                    }
+                }
+            } catch (error) {
+                console.log('RTSP URL parsing error:', error);
+            }
+        }
+
+        // Enhanced IP extraction function that works with any URL format
+        function extractIPFromRtspUrl(url) {
+            // Remove protocol if present
+            let cleanUrl = url.replace(/^[a-zA-Z]+:\/\//, '');
+            
+            // Remove credentials if present (everything before @)
+            if (cleanUrl.includes('@')) {
+                cleanUrl = cleanUrl.split('@')[1];
+            }
+            
+            // Remove path if present (everything after first /)
+            if (cleanUrl.includes('/')) {
+                cleanUrl = cleanUrl.split('/')[0];
+            }
+            
+            // Remove port if present (everything after :)
+            if (cleanUrl.includes(':')) {
+                cleanUrl = cleanUrl.split(':')[0];
+            }
+            
+            // Validate if it's a valid IP address
+            if (isValidIPAddress(cleanUrl)) {
+                return cleanUrl;
+            }
+            
+            // If not a valid IP, try to extract IP from hostname or any other format
+            const ipPattern = /(\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})/;
+            const ipMatch = url.match(ipPattern);
+            
+            if (ipMatch && isValidIPAddress(ipMatch[1])) {
+                return ipMatch[1];
+            }
+            
+            return null;
+        }
+
+        // Validate IP address format
+        function isValidIPAddress(ip) {
+            const ipPattern = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/;
+            const match = ip.match(ipPattern);
+            
+            if (!match) return false;
+            
+            // Check if each octet is between 0-255
+            for (let i = 1; i <= 4; i++) {
+                const octet = parseInt(match[i], 10);
+                if (octet < 0 || octet > 255) {
+                    return false;
+                }
+            }
+            
+            return true;
+        }
+
+        // Setup RTSP URL input handler with real-time IP extraction
+        function setupRtspUrlHandler() {
+            const rtspUrlInput = document.getElementById('rtspUrl');
+            if (rtspUrlInput) {
+                // Real-time parsing on every keystroke
+                rtspUrlInput.addEventListener('input', parseRtspUrl);
+                rtspUrlInput.addEventListener('keyup', parseRtspUrl);
+                rtspUrlInput.addEventListener('paste', function() {
+                    // Delay parsing untuk paste event
+                    setTimeout(parseRtspUrl, 100);
+                });
+                rtspUrlInput.addEventListener('blur', parseRtspUrl);
+            }
+        }
+
+        // Enhanced URL type detection
+        function detectUrlType(url) {
+            const url_lower = url.toLowerCase();
+            
+            // Live stream indicators
+            const liveIndicators = [
+                'live', 'stream', '.m3u8', '.mpd',
+                'youtube.com/watch', 'twitch.tv', 'facebook.com/watch',
+                'instagram.com/live', 'tiktok.com/live'
+            ];
+            
+            // File extensions
+            const fileExtensions = [
+                '.mp4', '.avi', '.mov', '.mkv', '.flv', '.wmv', '.webm',
+                '.m4v', '.3gp', '.ogv', '.ts', '.mts', '.m2ts'
+            ];
+            
+            const isFile = fileExtensions.some(ext => url_lower.endsWith(ext));
+            const isLiveIndicator = liveIndicators.some(indicator => url_lower.includes(indicator));
+            
+            if (isLiveIndicator && !isFile) {
+                return 'live_stream';
+            } else if (isFile) {
+                return 'file';
+            } else {
+                return 'unknown'; // Will be treated as file with original timing
+            }
+        }
+
+        // Source type management with feature visibility control
+        function selectSourceType(type, el) {
+            currentSourceType = type;
+            
+            // Hide RTSP error when changing source type
+            hideRtspError();
+            
+            // Update UI
+            document.querySelectorAll('.source-type-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.source-config').forEach(config => config.classList.remove('active'));
+            
+            if (el) el.classList.add('active');
+            document.getElementById(type + 'Config').classList.add('active');
+            
+            // Update indicator
+            const indicators = {
+                'rtsp': 'RTSP/IP Camera with Enhanced URL Support',
+                'webcam': 'USB/Built-in Webcam',
+                'stream': 'Live Stream URL with Original Timing',
+                'file': 'Video File/URL with Timing Control'
+            };
+            
+            document.getElementById('currentSourceIndicator').textContent = `Current: ${indicators[type]}`;
+            
+            // Show/Hide source-specific features
+            updateFeatureVisibility(type);
+            
+            // Refresh webcams if webcam selected
+            if (type === 'webcam') {
+                refreshWebcams();
+            }
+        }
+
+        // NEW: Function to control feature visibility based on source type
+        function updateFeatureVisibility(sourceType) {
+            const ptzSection = document.getElementById('ptzControlSection');
+            const obsPanel = document.getElementById('obsPanel');
+            const sourceIndicator = document.getElementById('currentSourceIndicator');
+            
+            // PTZ Controls - Only show for RTSP
+            if (sourceType === 'rtsp') {
+                ptzSection.style.display = 'block';
+            } else {
+                ptzSection.style.display = 'none';
+            }
+            
+            // Hide OBS panel when changing source types (will be shown on successful connection)
+            if (obsPanel) {
+                obsPanel.style.display = 'none';
+            }
+            
+            // Update source indicator styling
+            if (sourceIndicator) {
+                // Remove all source-specific classes
+                sourceIndicator.classList.remove('rtsp-active', 'webcam-active', 'stream-active', 'file-active');
+                // Add appropriate class for current source
+                sourceIndicator.classList.add(`${sourceType}-active`);
+            }
+            
+            // Update UI elements based on source capabilities
+            updateSourceSpecificUI(sourceType);
+        }
+
+        // NEW: Update UI elements based on source capabilities
+        function updateSourceSpecificUI(sourceType) {
+            // Update status items visibility
+            const liveStatus = document.querySelectorAll('.live-status');
+            const fileStatus = document.querySelectorAll('.file-status');
+            
+            // Reset all status items to hidden initially
+            liveStatus.forEach(status => status.style.display = 'none');
+            fileStatus.forEach(status => status.style.display = 'none');
+            
+            // Reset indicators
+            showLiveStreamUI(false);
+            showFileTimingUI(false);
+            
+            // Clear any source-specific indicators
+            const liveIndicator = document.getElementById('liveIndicator');
+            const fileIndicator = document.getElementById('fileIndicator');
+            if (liveIndicator) liveIndicator.style.display = 'none';
+            if (fileIndicator) fileIndicator.style.display = 'none';
+            
+            // Reset tracking for non-RTSP sources
+            if (sourceType !== 'rtsp' && trackingEnabled) {
+                trackingEnabled = false;
+                updateTrackingStatus();
+            }
+        }
+
+        // Webcam management
+        async function refreshWebcams() {
+            const webcamList = document.getElementById('webcamList');
+            webcamList.innerHTML = '<div class="webcam-item">🔍 Scanning for webcams...</div>';
+            
+            try {
+                const response = await fetch('/scan_webcams');
+                const result = await response.json();
+                
+                if (result.success && result.webcams.length > 0) {
+                    availableWebcams = result.webcams;
+                    webcamList.innerHTML = '';
+                    
+                    result.webcams.forEach((webcam, index) => {
+                        const webcamItem = document.createElement('div');
+                        webcamItem.className = 'webcam-item';
+                        webcamItem.onclick = () => selectWebcam(index);
+                        webcamItem.innerHTML = `
+                            📹 ${webcam.name} <br>
+                            <small style="color: #888;">Index: ${webcam.index} | ${webcam.info}</small>
+                        `;
+                        webcamList.appendChild(webcamItem);
+                    });
+                } else {
+                    webcamList.innerHTML = '<div class="webcam-item">❌ No webcams found</div>';
+                }
+            } catch (error) {
+                webcamList.innerHTML = '<div class="webcam-item">❌ Error scanning webcams</div>';
+                console.error('Webcam scan error:', error);
+            }
+        }
+
+        function selectWebcam(index) {
+            selectedWebcamIndex = index;
+            
+            document.querySelectorAll('.webcam-item').forEach(item => item.classList.remove('selected'));
+            if (index >= 0 && index < availableWebcams.length) {
+                document.querySelectorAll('.webcam-item')[index].classList.add('selected');
+            }
+        }
+
+        // Enhanced stream template management dengan live stream support
+        function setStreamTemplate(type) {
+            const streamUrl = document.getElementById('streamUrl');
+            const streamType = document.getElementById('streamType');
+            const preserveTiming = document.getElementById('preserveTiming');
+            
+            const templates = {
+                'youtube_live': {
+                    url: 'https://www.youtube.com/watch?v=LIVE_VIDEO_ID',
+                    type: 'youtube',
+                    live: true
+                },
+                'twitch_live': {
+                    url: 'https://www.twitch.tv/CHANNEL_NAME',
+                    type: 'twitch',
+                    live: true
+                },
+                'facebook_live': {
+                    url: 'https://www.facebook.com/USERNAME/live',
+                    type: 'facebook',
+                    live: true
+                },
+                'instagram_live': {
+                    url: 'https://www.instagram.com/USERNAME/live',
+                    type: 'instagram',
+                    live: true
+                },
+                'hls_live': {
+                    url: 'https://example.com/live/stream.m3u8',
+                    type: 'hls',
+                    live: true
+                },
+                'http': {
+                    url: 'http://example.com/stream.mjpg',
+                    type: 'http',
+                    live: false
+                }
+            };
+            
+            if (templates[type]) {
+                streamUrl.value = templates[type].url;
+                streamType.value = templates[type].type;
+                
+                // Auto-enable preserve timing untuk live streams
+                if (templates[type].live && preserveTiming) {
+                    preserveTiming.checked = true;
+                    showLiveStreamUI(true);
+                } else {
+                    showLiveStreamUI(false);
+                }
+            }
+        }
+
+        // Enhanced file URL input handler
+        function setupFileUrlHandler() {
+            const fileUrlInput = document.getElementById('fileUrl');
+            const autoDetectSelect = document.getElementById('autoDetectType');
+            const preserveFileTimingCheckbox = document.getElementById('preserveFileTiming');
+            
+            if (fileUrlInput) {
+                fileUrlInput.addEventListener('input', function() {
+                    const url = this.value.trim();
+                    if (url && autoDetectSelect && autoDetectSelect.value === 'auto') {
+                        const detectedType = detectUrlType(url);
+                        
+                        // Remove old hint
+                        const existingHint = document.getElementById('detectionHint');
+                        if (existingHint) {
+                            existingHint.remove();
+                        }
+                        
+                        // Create new hint
+                        const hint = document.createElement('div');
+                        hint.id = 'detectionHint';
+                        hint.className = 'detection-hint';
+                        
+                        if (detectedType === 'live_stream') {
+                            hint.innerHTML = '🔴 <strong>Auto-detected:</strong> LIVE STREAM URL - will use live timing preservation';
+                            hint.classList.add('live');
+                        } else {
+                            hint.innerHTML = '📁 <strong>Auto-detected:</strong> FILE URL - will preserve original playback speed';
+                        }
+                        
+                        fileUrlInput.parentNode.appendChild(hint);
+                        
+                        // Auto-enable preserve timing untuk semua jenis
+                        if (preserveFileTimingCheckbox) {
+                            preserveFileTimingCheckbox.checked = true;
+                        }
+                    }
+                });
+            }
+        }
+
+        // Function untuk menampilkan/menyembunyikan UI berbagai mode
+        function showLiveStreamUI(isLive) {
+            const liveIndicator = document.getElementById('liveIndicator');
+            const fileIndicator = document.getElementById('fileIndicator');
+            const liveStreamInfo = document.getElementById('liveStreamInfo');
+            const liveStatus = document.querySelectorAll('.live-status');
+            const fileStatus = document.querySelectorAll('.file-status');
+            const videoContainer = document.getElementById('videoContainer');
+            
+            if (isLive) {
+                // Show live stream UI
+                if (liveIndicator) liveIndicator.style.display = 'inline';
+                if (fileIndicator) fileIndicator.style.display = 'none';
+                if (liveStreamInfo) liveStreamInfo.style.display = 'block';
+                liveStatus.forEach(status => status.style.display = 'block');
+                fileStatus.forEach(status => status.style.display = 'none');
+                if (videoContainer) {
+                    videoContainer.classList.add('live-stream');
+                    videoContainer.classList.remove('file-timing');
+                }
+            } else {
+                // Hide live stream UI
+                if (liveIndicator) liveIndicator.style.display = 'none';
+                if (liveStreamInfo) liveStreamInfo.style.display = 'none';
+                liveStatus.forEach(status => status.style.display = 'none');
+                if (videoContainer) videoContainer.classList.remove('live-stream');
+            }
+        }
+
+        function showFileTimingUI(showFile) {
+            const fileIndicator = document.getElementById('fileIndicator');
+            const liveStreamInfo = document.getElementById('liveStreamInfo');
+            const fileStatus = document.querySelectorAll('.file-status');
+            const videoContainer = document.getElementById('videoContainer');
+            
+            if (showFile) {
+                // Show file timing UI
+                if (fileIndicator) fileIndicator.style.display = 'inline';
+                fileStatus.forEach(status => status.style.display = 'block');
+                if (videoContainer) {
+                    videoContainer.classList.add('file-timing');
+                    videoContainer.classList.remove('live-stream');
+                }
+                
+                // Update info panel for file
+                if (liveStreamInfo) {
+                    liveStreamInfo.style.display = 'block';
+                    liveStreamInfo.style.background = 'rgba(135, 206, 235, 0.1)';
+                    liveStreamInfo.style.borderColor = 'rgba(135, 206, 235, 0.3)';
+                    liveStreamInfo.style.color = '#87CEEB';
+                    liveStreamInfo.innerHTML = `📁 File with Original Timing | Source FPS: <span id="originalFps">--</span> | Mode: <span id="timingMode">Preserved</span>`;
+                }
+            } else {
+                // Hide file timing UI
+                if (fileIndicator) fileIndicator.style.display = 'none';
+                fileStatus.forEach(status => status.style.display = 'none');
+                if (videoContainer) videoContainer.classList.remove('file-timing');
+            }
+        }
+
+        // NEW: Update features based on successfully connected source
+        function updateConnectedSourceFeatures(sourceType, isLive, isFileWithTiming) {
+            // Show appropriate timing UI
+            if (isLive) {
+                showLiveStreamUI(true);
+                showFileTimingUI(false);
+            } else if (isFileWithTiming) {
+                showLiveStreamUI(false);
+                showFileTimingUI(true);
+            } else {
+                showLiveStreamUI(false);
+                showFileTimingUI(false);
+            }
+            
+            // Show/hide PTZ controls based on source type
+            const ptzSection = document.getElementById('ptzControlSection');
+            if (sourceType === 'rtsp') {
+                ptzSection.style.display = 'block';
+                // PTZ buttons will be enabled/disabled based on ONVIF availability in status updates
+                // Tracking can be enabled for RTSP sources
+            } else {
+                ptzSection.style.display = 'none';
+                // Disable tracking for non-RTSP sources
+                if (trackingEnabled) {
+                    trackingEnabled = false;
+                    updateTrackingStatus();
+                }
+            }
+        }
+
+        // Enhanced connection function dengan file timing preservation
+        async function connectSource() {
+            const connectBtn = document.getElementById('connectBtn');
+            const disconnectBtn = document.getElementById('disconnectBtn');
+            const messageDiv = document.getElementById('connectionMessage');
+            
+            connectBtn.disabled = true;
+            connectBtn.textContent = 'Connecting...';
+            messageDiv.innerHTML = '';
+            
+            // Hide any existing RTSP error message
+            hideRtspError();
+            
+            let connectionData = {
+                source_type: currentSourceType
+            };
+            
+            // Prepare connection data based on source type
+            switch (currentSourceType) {
+                case 'rtsp':
+                    const rtspUrl = document.getElementById('rtspUrl').value.trim();
+                    if (!rtspUrl) {
+                        showMessage('Please enter RTSP URL', 'error');
+                        resetConnectButton();
+                        return;
+                    }
+                    connectionData = {
+                        ...connectionData,
+                        rtsp_url: rtspUrl,
+                        camera_ip: document.getElementById('cameraIp').value.trim(),
+                        port: parseInt(document.getElementById('cameraPort').value),
+                        username: document.getElementById('username').value.trim(),
+                        password: document.getElementById('password').value.trim()
+                    };
+                    break;
+                    
+                case 'webcam':
+                    if (selectedWebcamIndex < 0) {
+                        showMessage('Please select a webcam', 'error');
+                        resetConnectButton();
+                        return;
+                    }
+                    connectionData = {
+                        ...connectionData,
+                        webcam_index: selectedWebcamIndex,
+                        webcam_info: availableWebcams[selectedWebcamIndex]
+                    };
+                    break;
+                    
+                case 'stream':
+                    const streamUrl = document.getElementById('streamUrl').value.trim();
+                    const preserveTimingChecked = document.getElementById('preserveTiming')?.checked || false;
+                    const bufferSize = document.getElementById('liveBufferSize')?.value || 'minimal';
+                    const timeout = document.getElementById('liveTimeout')?.value || '15';
+                    
+                    if (!streamUrl) {
+                        showMessage('Please enter stream URL', 'error');
+                        resetConnectButton();
+                        return;
+                    }
+                    
+                    connectionData = {
+                        ...connectionData,
+                        stream_url: streamUrl,
+                        stream_type: document.getElementById('streamType').value,
+                        preserve_timing: preserveTimingChecked,
+                        buffer_size: bufferSize,
+                        connection_timeout: parseInt(timeout) * 1000
+                    };
+                    break;
+                    
+                case 'file':
+                    const fileUrl = document.getElementById('fileUrl').value.trim();
+                    const preserveFileTimingChecked = document.getElementById('preserveFileTiming')?.checked !== false; // Default true
+                    const autoDetectType = document.getElementById('autoDetectType')?.value || 'auto';
+                    const fileBufferSize = document.getElementById('fileBufferSize')?.value || 'medium';
+                    
+                    if (!fileUrl) {
+                        showMessage('Please enter file path or URL', 'error');
+                        resetConnectButton();
+                        return;
+                    }
+                    
+                    // Auto-detect jika perlu
+                    let detectedType = 'file';
+                    if (autoDetectType === 'auto') {
+                        detectedType = detectUrlType(fileUrl);
+                        console.log(`🔍 Auto-detected URL type: ${detectedType} for ${fileUrl}`);
+                    } else if (autoDetectType === 'force_live') {
+                        detectedType = 'live_stream';
+                    } else {
+                        detectedType = 'file';
+                    }
+                    
+                    connectionData = {
+                        ...connectionData,
+                        file_url: fileUrl,
+                        loop_video: document.getElementById('loopVideo').value === 'true',
+                        preserve_file_timing: preserveFileTimingChecked,
+                        auto_detect_type: autoDetectType,
+                        detected_type: detectedType,
+                        file_buffer_size: fileBufferSize
+                    };
+                    
+                    // Show user what was detected
+                    if (autoDetectType === 'auto') {
+                        const detectionMessage = detectedType === 'live_stream' ? 
+                            '🔴 Detected as LIVE STREAM URL - will use live timing' :
+                            '📁 Detected as FILE URL - will preserve original speed';
+                        showMessage(detectionMessage, 'success');
+                    }
+                    break;
+            }
+
+            try {
+                const response = await fetch('/connect_source', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(connectionData)
+                });
+
+                const result = await response.json();
+                
+                if (result.success) {
+                    isConnected = true;
+                    showMessage(result.message, 'success');
+                    
+                    // Hide RTSP error message on successful connection
+                    hideRtspError();
+                    
+                    // Enhanced detection untuk berbagai mode
+                    isLiveStream = result.is_live_stream || false;
+                    preserveTiming = result.preserve_timing || false;
+                    originalFps = result.original_fps || null;
+                    isFileWithTiming = (currentSourceType === 'file' && preserveTiming && !isLiveStream);
+                    
+                    // Show appropriate UI based on connected source type
+                    updateConnectedSourceFeatures(currentSourceType, isLiveStream, isFileWithTiming);
+                    
+                    startVideoStream();
+                    
+                    startStatusUpdates();
+                    updatePerformanceSettings();
+                    
+                    // Show OBS streaming information for all sources
+                    showObsInfo();
+                    
+                    // Enhanced source indicator
+                    document.getElementById('currentSource').textContent = result.source_type || currentSourceType;
+                    let headerSourceText = result.source_type || currentSourceType;
+                    if (isLiveStream) {
+                        headerSourceText += ' 🔴LIVE';
+                    } else if (isFileWithTiming) {
+                        headerSourceText += ' ⏱️ORIG';
+                    }
+                    document.getElementById('headerSource').textContent = headerSourceText;
+                    
+                    // Update FPS info untuk semua mode
+                    if (originalFps) {
+                        document.getElementById('originalFps').textContent = originalFps.toFixed(1);
+                        document.getElementById('sourceFps').textContent = originalFps.toFixed(1);
+                        document.getElementById('fileOriginalFps').textContent = originalFps.toFixed(1);
+                    }
+                    
+                    connectBtn.style.display = 'none';
+                    disconnectBtn.style.display = 'block';
+                } else {
+                    showMessage('Connection failed: ' + result.message, 'error');
+                    
+                    // Show RTSP specific error if it's RTSP source
+                    if (currentSourceType === 'rtsp') {
+                        showRtspError('Wrong RTSP - Connection failed');
+                    }
+                }
+            } catch (error) {
+                showMessage('Connection error: ' + error.message, 'error');
+                
+                // Show RTSP specific error if it's RTSP source
+                if (currentSourceType === 'rtsp') {
+                    showRtspError('Wrong RTSP - Network error');
+                }
+            } finally {
+                resetConnectButton();
+            }
+        }
+
+        function resetConnectButton() {
+            const connectBtn = document.getElementById('connectBtn');
+            connectBtn.disabled = false;
+            connectBtn.textContent = '🚀 Connect to Source';
+        }
+
+        // Video control functions
+        function setVideoMode(mode) {
+            const videoFeed = document.getElementById('videoFeed');
+            const buttons = document.querySelectorAll('.video-option-btn');
+            
+            buttons.forEach(btn => btn.classList.remove('active'));
+            
+            if (mode === 'cover') {
+                buttons[0].classList.add('active');
+                videoFeed.style.objectFit = 'cover';
+            } else if (mode === 'contain') {
+                buttons[1].classList.add('active');
+                videoFeed.style.objectFit = 'contain';
+            }
+            
+            currentVideoMode = mode;
+        }
+
+        function toggleFullscreen() {
+            const videoContainer = document.getElementById('videoContainer');
+            const fullscreenBtn = document.querySelectorAll('.video-option-btn')[2];
+            
+            if (!isFullscreen) {
+                videoContainer.classList.add('fullscreen');
+                fullscreenBtn.classList.add('active');
+                fullscreenBtn.textContent = '⛶';
+                fullscreenBtn.title = 'Exit Fullscreen';
+                isFullscreen = true;
+                document.addEventListener('keydown', handleEscapeKey);
+            } else {
+                exitFullscreen();
+            }
+        }
+
+        function exitFullscreen() {
+            const videoContainer = document.getElementById('videoContainer');
+            const fullscreenBtn = document.querySelectorAll('.video-option-btn')[2];
+            
+            videoContainer.classList.remove('fullscreen');
+            fullscreenBtn.classList.remove('active');
+            fullscreenBtn.textContent = '⛶';
+            fullscreenBtn.title = 'Fullscreen';
+            isFullscreen = false;
+            document.removeEventListener('keydown', handleEscapeKey);
+        }
+
+        function handleEscapeKey(event) {
+            if (event.key === 'Escape' && isFullscreen) {
+                exitFullscreen();
+            }
+        }
+
+        // Performance and settings functions
+        function updateFPS(value) {
+            targetFPS = parseInt(value);
+            document.getElementById('fpsValue').textContent = value;
+            
+            if (isConnected) {
+                updatePerformanceSettings();
+                const videoFeed = document.getElementById('videoFeed');
+                if (videoFeed.src) {
+                    const timestamp = Date.now();
+                    videoFeed.src = `/video_feed?t=${timestamp}&fps=${targetFPS}`;
+                }
+            }
+        }
+
+        function updateYoloConfidence(value) {
+            yoloConfidence = parseInt(value);
+            document.getElementById('confidenceValue').textContent = value + '%';
+            
+            if (isConnected) {
+                fetch('/update_settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ yolo_confidence: yoloConfidence / 100 })
+                });
+            }
+        }
+
+        function updateYoloInputSize(value) {
+            yoloInputSize = parseInt(value);
+            document.getElementById('yoloInputSize').textContent = value;
+            
+            if (isConnected) {
+                fetch('/update_settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ yolo_input_size: yoloInputSize })
+                });
+            }
+        }
+
+        function updateTrackingSensitivity(value) {
+            trackingSensitivity = parseInt(value);
+            document.getElementById('trackingSensitivityValue').textContent = value;
+            
+            if (isConnected) {
+                fetch('/update_settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tracking_sensitivity: trackingSensitivity })
+                });
+            }
+        }
+
+        function updatePTZSpeed(value) {
+            ptzSpeed = parseFloat(value);
+            document.getElementById('ptzSpeedValue').textContent = value;
+            
+            if (isConnected) {
+                fetch('/update_settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ptz_speed: ptzSpeed })
+                });
+            }
+        }
+
+        function updateQualityMode(mode) {
+            const qualitySettings = {
+                'high': { fps: 30, confidence: 50, inputSize: 640 },
+                'balanced': { fps: 25, confidence: 40, inputSize: 320 },
+                'performance': { fps: 15, confidence: 30, inputSize: 320 },
+                'auto': { fps: 25, confidence: 40, inputSize: 320 }
+            };
+            
+            if (mode !== 'auto' && qualitySettings[mode]) {
+                const settings = qualitySettings[mode];
+                document.getElementById('fpsSlider').value = settings.fps;
+                document.getElementById('confidenceSlider').value = settings.confidence;
+                document.getElementById('inputSizeSelect').value = settings.inputSize;
+                
+                updateFPS(settings.fps);
+                updateYoloConfidence(settings.confidence);
+                updateYoloInputSize(settings.inputSize);
+            }
+        }
+
+        function updatePerformanceSettings() {
+            if (isConnected) {
+                const settings = {
+                    target_fps: targetFPS,
+                    yolo_confidence: yoloConfidence / 100,
+                    yolo_input_size: yoloInputSize,
+                    tracking_sensitivity: trackingSensitivity,
+                    ptz_speed: ptzSpeed
+                };
+                
+                fetch('/update_settings', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(settings)
+                });
+            }
+        }
+
+        // Toggle functions
+        async function toggleTracking() {
+            try {
+                const response = await fetch('/toggle_tracking', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    trackingEnabled = result.tracking_enabled;
+                    updateTrackingStatus();
+                    showMessage('Tracking ' + (trackingEnabled ? 'enabled' : 'disabled'), 'success');
+                }
+            } catch (error) {
+                showMessage('Toggle tracking error', 'error');
+            }
+        }
+
+        async function toggleYOLO() {
+            try {
+                const response = await fetch('/toggle_yolo', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    yoloEnabled = result.yolo_enabled;
+                    updateYOLOStatus();
+                    showMessage('' + (yoloEnabled ? 'AI enabled' : 'AI disabled'), 'success');
+                } else {
+                    showMessage(result.message || 'not available', 'error');
+                }
+            } catch (error) {
+                showMessage('Toggle error', 'error');
+            }
+        }
+
+        // NEW: Toggle detection overlay function
+        async function toggleDetectionOverlay() {
+            try {
+                const response = await fetch('/toggle_detection_overlay', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    showDetectionOverlay = result.overlay_enabled;
+                    updateDetectionOverlayStatus();
+                    showMessage(result.message, 'success');
+                }
+            } catch (error) {
+                showMessage('Toggle detection overlay error', 'error');
+            }
+        }
+
+        // PTZ functions
+        async function movePTZ(pan, tilt, zoom) {
+            if (!isConnected || !ptzAvailable) {
+                showMessage('PTZ not available', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('/ptz_move', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ pan, tilt, zoom })
+                });
+
+                const result = await response.json();
+                if (!result.success) {
+                    showMessage('PTZ move failed', 'error');
+                }
+            } catch (error) {
+                showMessage('PTZ error', 'error');
+            }
+        }
+
+        // Status update functions
+        function updateConnectionStatus(connected) {
+            const statusElement = document.getElementById('connectionStatus');
+            const statusIndicator = statusElement.querySelector('.status-indicator');
+            const statusText = document.getElementById('connectionText');
+            
+            if (connected) {
+                statusIndicator.className = 'status-indicator status-connected';
+                statusText.textContent = 'Connected (Multi-Source Ready)';
+            } else {
+                statusIndicator.className = 'status-indicator status-disconnected';
+                statusText.textContent = 'Disconnected';
+            }
+        }
+
+        function updateTrackingStatus() {
+            const toggle = document.getElementById('trackingToggle');
+            const trackingStatus = document.getElementById('trackingStatus');
+            
+            if (trackingEnabled) {
+                toggle.classList.add('active');
+                if (trackingStatus) trackingStatus.textContent = 'ON';
+            } else {
+                toggle.classList.remove('active');
+                if (trackingStatus) trackingStatus.textContent = 'OFF';
+            }
+        }
+
+        function updateYOLOStatus() {
+            const toggle = document.getElementById('yoloToggle');
+            if (yoloEnabled) {
+                toggle.classList.add('active');
+            } else {
+                toggle.classList.remove('active');
+            }
+        }
+
+        // NEW: Update detection overlay status
+        function updateDetectionOverlayStatus() {
+            const toggle = document.getElementById('overlayToggle');
+            const overlayStatus = document.getElementById('overlayStatus');
+            
+            if (showDetectionOverlay) {
+                toggle.classList.add('active');
+                if (overlayStatus) overlayStatus.textContent = 'ON';
+            } else {
+                toggle.classList.remove('active');
+                if (overlayStatus) overlayStatus.textContent = 'OFF';
+            }
+        }
+
+        function enablePTZControls() {
+            const ptzButtons = document.querySelectorAll('.ptz-btn');
+            ptzButtons.forEach(btn => {
+                if (ptzAvailable && isConnected) {
+                    btn.classList.remove('disabled');
+                } else {
+                    btn.classList.add('disabled');
+                }
+            });
+        }
+
+        function showMessage(message, type) {
+            const messageDiv = document.getElementById('connectionMessage');
+            messageDiv.innerHTML = `<div class="message ${type}-message">${message}</div>`;
+            
+            if (type === 'success') {
+                setTimeout(() => {
+                    messageDiv.innerHTML = '';
+                }, 5000);
+            }
+        }
+
+        // Video streaming
+        function startVideoStream() {
+            const videoFeed = document.getElementById('videoFeed');
+            const noVideo = document.getElementById('noVideo');
+            
+            const timestamp = Date.now();
+            videoFeed.src = `/video_feed?t=${timestamp}&fps=${targetFPS}`;
+            videoFeed.style.display = 'block';
+            noVideo.style.display = 'none';
+            
+            videoFeed.style.objectFit = currentVideoMode;
+        }
+
+        // Enhanced status monitoring dengan file timing info
+        async function checkStatus() {
+            try {
+                const response = await fetch('/status');
+                const status = await response.json();
+                
+                isConnected = status.connected;
+                trackingEnabled = status.tracking_enabled;
+                ptzAvailable = status.ptz_available;
+                yoloEnabled = status.yolo_enabled;
+                showDetectionOverlay = status.show_detection_overlay !== undefined ? status.show_detection_overlay : true;
+                
+                updateConnectionStatus(isConnected);
+                updateTrackingStatus();
+                updateYOLOStatus();
+                updateDetectionOverlayStatus();  // NEW: Update detection overlay status
+                enablePTZControls();
+                
+                // Update status displays
+                document.getElementById('streamingStatus').textContent = status.streaming ? '✅' : '❌';
+                document.getElementById('aiStatus').textContent = (yoloEnabled || trackingEnabled) ? '✅' : '❌';
+                
+                // PTZ Status - Only update if PTZ section is visible (RTSP source)
+                const ptzSection = document.getElementById('ptzControlSection');
+                if (ptzSection && ptzSection.style.display !== 'none') {
+                    document.getElementById('ptzStatus').textContent = ptzAvailable ? '✅' : '❌';
+                    document.getElementById('onvifStatus').textContent = status.onvif_status || 'Not available';
+                }
+                
+                // Update source type status
+                const sourceTypeStatus = document.getElementById('sourceTypeStatus');
+                if (sourceTypeStatus) {
+                    let sourceText = status.source_type || 'None';
+                    if (status.source_type === 'rtsp') sourceText = 'RTSP/IP Camera';
+                    else if (status.source_type === 'webcam') sourceText = 'USB Webcam';
+                    else if (status.source_type === 'stream') sourceText = 'Live Stream';
+                    else if (status.source_type === 'file') sourceText = 'Video File';
+                    
+                    sourceTypeStatus.textContent = sourceText;
+                }
+                
+                document.getElementById('personCount').textContent = status.person_count || 0;
+                
+                // Update detection status
+                const detectionStatus = document.getElementById('detectionStatus');
+                if (detectionStatus) {
+                    if (yoloEnabled && showDetectionOverlay) {
+                        detectionStatus.textContent = 'AI + Boxes';
+                    } else if (yoloEnabled && !showDetectionOverlay) {
+                        detectionStatus.textContent = 'AI Only';
+                    } else if (status.detection_method && status.detection_method.includes('Motion') && showDetectionOverlay) {
+                        detectionStatus.textContent = 'Motion + Boxes';
+                    } else if (status.detection_method && status.detection_method.includes('Motion') && !showDetectionOverlay) {
+                        detectionStatus.textContent = 'Motion Only';
+                    } else {
+                        detectionStatus.textContent = 'Off';
+                    }
+                }
+                
+                // Update info
+                if (status.yolo_device) {
+                    document.getElementById('yoloDevice').textContent = status.yolo_device.toUpperCase();
+                    document.getElementById('headerYoloDevice').textContent = status.yolo_device.toUpperCase();
+                }
+                
+                if (status.yolo_model_name && status.yolo_model_name !== 'Not Available') {
+                    document.getElementById('yoloModel').textContent = status.yolo_model_name.split('.')[0].toUpperCase();
+                    document.getElementById('headerYoloModel').textContent = yoloEnabled ? 'Active' : 'Ready';
+                } else {
+                    document.getElementById('yoloModel').textContent = 'N/A';
+                    document.getElementById('headerYoloModel').textContent = 'Not Available';
+                }
+                
+                // Update performance displays
+                if (status.fps !== undefined) {
+                    document.getElementById('currentFps').textContent = status.fps;
+                    document.getElementById('headerFps').textContent = status.fps;
+                }
+                
+                if (status.quality !== undefined) {
+                    document.getElementById('currentQuality').textContent = status.quality + '%';
+                    document.getElementById('headerQuality').textContent = status.quality;
+                }
+                
+                // Enhanced source type display dengan timing info
+                if (status.source_type) {
+                    document.getElementById('currentSource').textContent = status.source_type;
+                    let headerSourceText = status.source_type;
+                    
+                    if (status.is_live_stream) {
+                        headerSourceText += ' 🔴LIVE';
+                        isLiveStream = true;
+                        isFileWithTiming = false;
+                        showLiveStreamUI(true);
+                        showFileTimingUI(false);
+                    } else if (status.preserve_timing && status.source_type === 'file') {
+                        headerSourceText += ' ⏱️ORIG';
+                        isLiveStream = false;
+                        isFileWithTiming = true;
+                        showLiveStreamUI(false);
+                        showFileTimingUI(true);
+                    } else {
+                        isLiveStream = false;
+                        isFileWithTiming = false;
+                        showLiveStreamUI(false);
+                        showFileTimingUI(false);
+                    }
+                    
+                    document.getElementById('headerSource').textContent = headerSourceText;
+                }
+                
+                // Update timing info untuk semua mode
+                if (status.original_fps) {
+                    document.getElementById('originalFps').textContent = status.original_fps.toFixed(1);
+                    document.getElementById('sourceFps').textContent = status.original_fps.toFixed(1);
+                    document.getElementById('fileOriginalFps').textContent = status.original_fps.toFixed(1);
+                }
+                
+                // Update mode specific status
+                if (isLiveStream) {
+                    const timingMode = status.preserve_timing ? 'Preserved' : 'Optimized';
+                    document.getElementById('timingMode').textContent = timingMode;
+                    document.getElementById('liveStreamStatus').textContent = 'Active';
+                } else if (isFileWithTiming) {
+                    document.getElementById('fileTimingMode').textContent = 'Original';
+                }
+                
+                // Update load indicator
+                const load = status.fps < targetFPS * 0.7 ? 'High' : status.fps < targetFPS * 0.9 ? 'Medium' : 'Low';
+                document.getElementById('headerLoad').textContent = load;
+                
+                // Update button visibility
+                const connectBtn = document.getElementById('connectBtn');
+                const disconnectBtn = document.getElementById('disconnectBtn');
+                
+                if (isConnected) {
+                    connectBtn.style.display = 'none';
+                    disconnectBtn.style.display = 'block';
+                } else {
+                    connectBtn.style.display = 'block';
+                    disconnectBtn.style.display = 'none';
+                }
+                
+            } catch (error) {
+                console.error('Status check error:', error);
+            }
+        }
+
+        function startStatusUpdates() {
+            if (statusInterval) {
+                clearInterval(statusInterval);
+            }
+            
+            setTimeout(() => checkStatus(), 100);
+            statusInterval = setInterval(() => checkStatus(), 2000);
+        }
+
+        function stopStatusUpdates() {
+            if (statusInterval) {
+                clearInterval(statusInterval);
+                statusInterval = null;
+            }
+        }
+
+        // Disconnect function
+        async function forceDisconnect() {
+            const connectBtn = document.getElementById('connectBtn');
+            const disconnectBtn = document.getElementById('disconnectBtn');
+            
+            disconnectBtn.disabled = true;
+            disconnectBtn.textContent = 'Disconnecting...';
+            
+            // Hide RTSP error message on disconnect
+            hideRtspError();
+            
+            try {
+                const response = await fetch('/disconnect', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showMessage('Successfully disconnected: ' + result.message, 'success');
+                } else {
+                    showMessage('Disconnect warning: ' + result.message, 'error');
+                }
+                
+            } catch (error) {
+                showMessage('Disconnect error: ' + error.message, 'error');
+            }
+            
+            // Reset UI
+            isConnected = false;
+            isLiveStream = false;
+            isFileWithTiming = false;
+            trackingEnabled = false; // Reset tracking
+            showDetectionOverlay = true; // Reset to default
+            updateConnectionStatus(false);
+            updateDetectionOverlayStatus(); // Reset overlay status
+            updateTrackingStatus(); // Reset tracking status
+            showLiveStreamUI(false);
+            showFileTimingUI(false);
+            hideObsInfo(); // Hide OBS information
+            
+            // Hide all source-specific features
+            const ptzSection = document.getElementById('ptzControlSection');
+            if (ptzSection) ptzSection.style.display = 'none';
+            
+            const videoFeed = document.getElementById('videoFeed');
+            const noVideo = document.getElementById('noVideo');
+            
+            videoFeed.src = '';
+            videoFeed.style.display = 'none';
+            noVideo.style.display = 'block';
+            noVideo.textContent = '📹 Select a video source to start AI streaming with toggleable detection overlay';
+            
+            connectBtn.style.display = 'block';
+            connectBtn.disabled = false;
+            connectBtn.textContent = '🚀 Connect to Source';
+            
+            disconnectBtn.style.display = 'none';
+            disconnectBtn.disabled = false;
+            disconnectBtn.textContent = 'Force Disconnect';
+            
+            // Reset indicators
+            document.getElementById('currentSource').textContent = 'None';
+            document.getElementById('headerSource').textContent = 'None';
+            
+            stopStatusUpdates();
+        }
+
+        // Initialize on page load dengan enhanced timing support
+        document.addEventListener('DOMContentLoaded', function() {
+            setVideoMode('cover');
+            
+            // Set initial values
+            document.getElementById('fpsSlider').value = 25;
+            document.getElementById('fpsValue').textContent = '25';
+            document.getElementById('inputSizeSelect').value = yoloInputSize;
+            document.getElementById('confidenceSlider').value = yoloConfidence;
+            document.getElementById('confidenceValue').textContent = yoloConfidence + '%';
+            document.getElementById('yoloInputSize').textContent = yoloInputSize;
+            document.getElementById('trackingSensitivitySlider').value = trackingSensitivity;
+            document.getElementById('trackingSensitivityValue').textContent = trackingSensitivity;
+            document.getElementById('ptzSpeedSlider').value = ptzSpeed;
+            document.getElementById('ptzSpeedValue').textContent = ptzSpeed.toFixed(1);
+            
+            // Set initial detection overlay status
+            updateDetectionOverlayStatus();
+            
+            // Set initial tracking status
+            updateTrackingStatus();
+            
+            // Initialize feature visibility for default source type (RTSP)
+            updateFeatureVisibility('rtsp');
+            
+            // Setup enhanced file URL handling
+            setupFileUrlHandler();
+            
+            // Setup RTSP URL parsing
+            setupRtspUrlHandler();
+            
+            // Set default values for file timing
+            const preserveFileTimingCheckbox = document.getElementById('preserveFileTiming');
+            if (preserveFileTimingCheckbox) {
+                preserveFileTimingCheckbox.checked = true; // Default to preserve timing
+            }
+            
+            // Setup stream URL live detection
+            const streamUrlInput = document.getElementById('streamUrl');
+            if (streamUrlInput) {
+                streamUrlInput.addEventListener('input', function() {
+                    const url = this.value.toLowerCase();
+                    const isLikelyLive = url.includes('live') || 
+                                       url.includes('.m3u8') || 
+                                       url.includes('youtube.com/watch') || 
+                                       url.includes('twitch.tv') ||
+                                       url.includes('facebook.com') ||
+                                       url.includes('instagram.com');
+                    
+                    if (isLikelyLive) {
+                        const preserveTiming = document.getElementById('preserveTiming');
+                        if (preserveTiming) preserveTiming.checked = true;
+                    }
+                });
+            }
+            
+            startStatusUpdates();
+            
+            console.log('🚀 Multi-Source CCTV System Initialized with Tab-Specific Features');
+            console.log('📡 Feature Visibility: Source-specific controls enabled');
+            console.log('🕹️ PTZ Controls: Only visible for RTSP sources');
+            console.log('🎯 Auto Tracking: Only available with PTZ (RTSP sources)');
+            console.log('📺 Live Stream Features: Only for live stream sources');
+            console.log('📁 File Features: Only for file sources');
+            console.log('🌐 ONVIF Status: Only for RTSP sources');
+            console.log('📺 OBS Integration: Available for all connected sources');
+            console.log('🔲 Detection Overlay Toggle: Universal feature');
+            console.log('🤖 AI Detection: Universal feature with source-aware optimization');
+        });
+
+        // Enhanced error handling for video feed
+        window.addEventListener('load', function() {
+            const videoFeed = document.getElementById('videoFeed');
+            
+            videoFeed.addEventListener('error', function() {
+                console.warn('Video feed error detected');
+                if (isConnected) {
+                    showMessage('Video feed error - attempting to reconnect', 'error');
+                }
+            });
+            
+        });
+
+    </script>
+</body>
+</html>
