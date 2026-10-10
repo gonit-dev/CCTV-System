@@ -159,7 +159,13 @@
         .video-container {
             background: #111;
             border-radius: var(--radius);
-            flex: 1;
+            /* Lebar ikut video-section, tinggi mengikuti rasio player YouTube (16:9).
+               content-box + calc(100% - 2px): rasio 16:9 berlaku pada area di dalam border (1px kiri-kanan),
+               jadi video 16:9 memenuhi container tepat tanpa celah. */
+            flex: none;
+            box-sizing: content-box;
+            width: calc(100% - 2px);
+            aspect-ratio: 16 / 9;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -203,12 +209,26 @@
             50% { opacity: 0.6; }
         }
 
+        /* Mode 📐 (default): video selalu tampil utuh di dalam video-container, rasio asli tetap.
+           - Lebar video = lebar video-container (berapapun resolusinya), tinggi menyesuaikan rasio.
+           - Jika tinggi hasilnya melebihi tinggi video-container, maka tinggi video = tinggi
+             video-container dan lebarnya yang menyesuaikan (sisa ruang jadi bar gelap di kiri-kanan).
+           Kotak <img> dibuat sebesar video-container, object-fit: contain yang mengatur skalanya. */
         #videoFeed {
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
             width: 100%;
             height: 100%;
-            object-fit: cover;
+            object-fit: contain;
             object-position: center;
             border-radius: var(--radius);
+        }
+
+        /* Mode 📏: isi penuh container (memotong sisi yang lebih) */
+        #videoFeed.mode-cover {
+            object-fit: cover;
         }
 
         .no-video {
@@ -922,7 +942,6 @@
         #onvifStatusSection { border-color: var(--green-border); }
     </style>
 </head>
-</head>
 <body>
     <div class="container">
         <div class="header">
@@ -950,8 +969,8 @@
             <div class="video-section">
                 <div class="video-container" id="videoContainer">
                     <div class="video-options">
-                        <button class="video-option-btn active" onclick="setVideoMode('cover')" title="Full Frame">📏</button>
-                        <button class="video-option-btn" onclick="setVideoMode('contain')" title="Fit Container">📐</button>
+                        <button class="video-option-btn" onclick="setVideoMode('cover')" title="Full Frame">📏</button>
+                        <button class="video-option-btn active" onclick="setVideoMode('contain')" title="Fit Container">📐</button>
                         <button class="video-option-btn" onclick="toggleFullscreen()" title="Fullscreen">⛶</button>
                     </div>
                     <img id="videoFeed" style="display: none;" alt="Video Feed">
@@ -1518,7 +1537,7 @@
         let showDetectionOverlay = true;  // NEW: Detection overlay state
         let ptzAvailable = false;
         let statusInterval = null;
-        let currentVideoMode = 'cover';
+        let currentVideoMode = 'contain';
         let isFullscreen = false;
         let currentSourceType = 'rtsp';
         let selectedWebcamIndex = -1;
@@ -2373,10 +2392,10 @@
             
             if (mode === 'cover') {
                 buttons[0].classList.add('active');
-                videoFeed.style.objectFit = 'cover';
+                videoFeed.classList.add('mode-cover');
             } else if (mode === 'contain') {
                 buttons[1].classList.add('active');
-                videoFeed.style.objectFit = 'contain';
+                videoFeed.classList.remove('mode-cover');
             }
             
             currentVideoMode = mode;
@@ -2697,8 +2716,6 @@
             videoFeed.src = `/video_feed?t=${timestamp}&fps=${targetFPS}`;
             videoFeed.style.display = 'block';
             noVideo.style.display = 'none';
-            
-            videoFeed.style.objectFit = currentVideoMode;
         }
 
         // Enhanced status monitoring dengan file timing info
@@ -2936,7 +2953,7 @@
 
         // Initialize on page load dengan enhanced timing support
         document.addEventListener('DOMContentLoaded', function() {
-            setVideoMode('cover');
+            setVideoMode('contain');
             
             // Set initial values
             document.getElementById('fpsSlider').value = 25;
